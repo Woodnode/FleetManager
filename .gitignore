@@ -1,0 +1,60 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+
+## Build
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+
+## User settings
+*.rsuser
+.idea/
+*.DS_Store
+
+## Migrations (optional – keep commented if you want to track them)
+# **/Migrations/
+
+## Environment / secrets
+appsettings.Production.json
+.env
+*.pem
+*.key
+
+# Serilog rolling log files
+logs/
+*.log
+
+## Internal docs (private — README.md is the only public doc)
+DEPLOYMENT.md
+AMELIORATIONS.md
+PLAN.md
+PLAN_TEST_FONCTIONNEL.md
+PLAN_TEST_SECURITE.md
+TESTS_FONCTIONNELS.md
+client/README.md
+
+## Claude AI session files
+.claude/
+
+## Dev tooling (local only)
+.husky/
+e2e/
+
+## Node (root)
+node_modules/
