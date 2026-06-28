@@ -1,0 +1,260 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap');
+
+/* ═══════════════════════════════════════════════
+   FleetManager — Design System Tokens
+═══════════════════════════════════════════════ */
+:root {
+  /* Brand */
+  --brand-400: #748ffc;
+  --brand-500: #4c6ef5;
+  --brand-600: #3b55e6;
+  --brand-glow: rgba(76, 110, 245, 0.32);
+
+  /* Sidebar */
+  --sidebar-bg:            #0c1020;
+  --sidebar-border:        rgba(255, 255, 255, 0.07);
+  --sidebar-hover:         rgba(255, 255, 255, 0.05);
+  --sidebar-active-bg:     rgba(76, 110, 245, 0.16);
+  --sidebar-active-border: #4c6ef5;
+
+  /* Surfaces */
+  --surface-page: #f5f7fb;
+  --surface-card: #ffffff;
+  --border-base:  #e4e9f2;
+  --border-light: #f1f5f9;
+
+  /* Elevation */
+  --shadow-card:  0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-hover: 0 8px 24px rgba(0,0,0,0.09);
+  --shadow-modal: 0 24px 48px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.03);
+
+  /* Radius */
+  --radius-card: 14px;
+  --radius-btn:  8px;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+}
+
+/* ═══════════════════════════════════════════════
+   Base
+═══════════════════════════════════════════════ */
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--surface-page);
+}
+
+/* ═══════════════════════════════════════════════
+   Scrollbar
+═══════════════════════════════════════════════ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ═══════════════════════════════════════════════
+   Sidebar
+═══════════════════════════════════════════════ */
+.fm-sidebar {
+  background: var(--sidebar-bg);
+}
+
+/* ═══════════════════════════════════════════════
+   Navigation Links
+═══════════════════════════════════════════════ */
+.fm-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius-btn);
+  font-size: 0.84rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: #475569;
+  border-left: 2px solid transparent;
+  margin-left: -1px;
+  transition: color 0.13s ease, background 0.13s ease, border-color 0.13s ease;
+}
+
+.fm-nav-link:hover {
+  color: #cbd5e1;
+  background: var(--sidebar-hover);
+}
+
+.fm-nav-link.active {
+  color: #ffffff;
+  background: var(--sidebar-active-bg);
+  border-left-color: var(--sidebar-active-border);
+}
+
+/* ═══════════════════════════════════════════════
+   Cards
+═══════════════════════════════════════════════ */
+.fm-card {
+  background: var(--surface-card);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.fm-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-1px);
+}
+
+/* KPI top-border color accents */
+.fm-kpi-blue    { border-top: 3px solid #4c6ef5; }
+.fm-kpi-emerald { border-top: 3px solid #10b981; }
+.fm-kpi-amber   { border-top: 3px solid #f59e0b; }
+.fm-kpi-slate   { border-top: 3px solid #64748b; }
+
+/* ═══════════════════════════════════════════════
+   Inputs & Forms
+═══════════════════════════════════════════════ */
+.fm-input {
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: var(--radius-btn);
+  padding: 9px 14px;
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  color: #0f172a;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  appearance: none;
+}
+
+.fm-input::placeholder { color: #94a3b8; }
+
+.fm-input:focus {
+  border-color: var(--brand-500);
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.12);
+}
+
+.fm-input:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Login page dark inputs */
+.fm-input-dark {
+  width: 100%;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-btn);
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  color: white;
+  background: rgba(255,255,255,0.05);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+.fm-input-dark::placeholder { color: rgba(255,255,255,0.25); }
+
+.fm-input-dark:focus {
+  border-color: var(--brand-400);
+  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.2);
+  background: rgba(255,255,255,0.07);
+}
+
+/* ═══════════════════════════════════════════════
+   Buttons
+═══════════════════════════════════════════════ */
+.fm-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: linear-gradient(135deg, var(--brand-500) 0%, #6366f1 100%);
+  color: white;
+  font-weight: 500;
+  font-size: 0.875rem;
+  padding: 9px 16px;
+  border-radius: var(--radius-btn);
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px var(--brand-glow);
+  white-space: nowrap;
+}
+
+.fm-btn-primary:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--brand-glow);
+}
+
+.fm-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px var(--brand-glow);
+}
+
+.fm-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ═══════════════════════════════════════════════
+   Modal
+═══════════════════════════════════════════════ */
+.fm-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: var(--shadow-modal);
+  overflow: hidden;
+}
+
+.fm-modal-bar {
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-500) 0%, #818cf8 100%);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════
+   Badge Dot
+═══════════════════════════════════════════════ */
+.fm-dot {
+  display: inline-block;
+  width: 5.5px;
+  height: 5.5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  top: -0.5px;
+}
+
+/* ═══════════════════════════════════════════════
+   Page Entry Animation
+═══════════════════════════════════════════════ */
+@keyframes fm-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.fm-page { animation: fm-in 0.22s ease both; }
+
+/* ═══════════════════════════════════════════════
+   Table Head Helper
+═══════════════════════════════════════════════ */
+.fm-th {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+/* ═══════════════════════════════════════════════
+   Left-panel dot grid (Login)
+═══════════════════════════════════════════════ */
+.fm-dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
