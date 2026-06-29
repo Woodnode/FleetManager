@@ -11,6 +11,7 @@ function renderRoute(user: AuthContext.AuthContextType['user'], loading = false)
   mockUseAuth.mockReturnValue({
     user,
     setUser: vi.fn(),
+    logout: vi.fn(),
     loading,
   })
 
@@ -36,13 +37,13 @@ describe('ProtectedRoute', () => {
   })
 
   it('affiche le contenu quand authentifié', () => {
-    renderRoute({ userId: '1', role: 'Admin', storeId: null })
+    renderRoute({ userId: '1', role: 'Admin', storeId: null, firstName: null, lastName: null })
     expect(screen.getByText('Contenu protégé')).toBeInTheDocument()
     expect(screen.queryByText('Page de connexion')).not.toBeInTheDocument()
   })
 
   it('affiche un spinner pendant le chargement', () => {
-    mockUseAuth.mockReturnValue({ user: null, setUser: vi.fn(), loading: true })
+    mockUseAuth.mockReturnValue({ user: null, setUser: vi.fn(), logout: vi.fn(), loading: true })
     render(
       <MemoryRouter initialEntries={['/protected']}>
         <Routes>
