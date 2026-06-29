@@ -142,8 +142,10 @@ export default function Interventions() {
 
   const handleStatusChange = () => {
     if (!statusAction) return
-    if (statusAction.nextStatus === 'Cancelled' && !comment.trim())
-      return toast.error('Une raison est requise pour annuler')
+    if (statusAction.nextStatus === 'Cancelled' && !comment.trim()) {
+      toast.error('Une raison est requise pour annuler')
+      return
+    }
     statusM.mutate({
       id: statusAction.intervention.id,
       status: statusAction.nextStatus,
