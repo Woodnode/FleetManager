@@ -110,7 +110,7 @@ public class AuthController : ApiControllerBase
         {
             HttpOnly = true,
             Secure   = true,
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.None,
         };
         Response.Cookies.Delete("access_token",  cookieOptions);
         Response.Cookies.Delete("refresh_token", cookieOptions);
@@ -147,7 +147,7 @@ public class AuthController : ApiControllerBase
         {
             HttpOnly = true,
             Secure   = true,
-            SameSite = SameSiteMode.Strict,
+            SameSite = SameSiteMode.None,
             Expires  = DateTimeOffset.UtcNow.AddMinutes(15)
         });
 
@@ -157,7 +157,7 @@ public class AuthController : ApiControllerBase
             {
                 HttpOnly = true,
                 Secure   = true,
-                SameSite = SameSiteMode.Strict,
+                SameSite = SameSiteMode.None,
                 Expires  = DateTimeOffset.UtcNow.AddDays(7),
                 Path     = "/api/v1/auth/refresh"
             });
