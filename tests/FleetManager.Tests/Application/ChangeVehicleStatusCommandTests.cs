@@ -44,7 +44,7 @@ public class ChangeVehicleStatusCommandTests
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        result.Value!.Status.Should().Be("InIntervention");
+        result.Value!.Status.Should().Be(VehicleStatus.InIntervention);
     }
 
     [Fact]
