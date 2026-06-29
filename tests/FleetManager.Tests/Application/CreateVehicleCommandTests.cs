@@ -35,7 +35,7 @@ public class CreateVehicleCommandTests
         _authService.Setup(a => a.CanAccessStore(It.IsAny<UserRole?>(), It.IsAny<Guid?>(), StoreId)).Returns(true);
         _vehicleRepo.Setup(r => r.ExistsByVinAsync(ValidVin, default)).ReturnsAsync(false);
         _storeRepo.Setup(r => r.ExistsAsync(StoreId, default)).ReturnsAsync(true);
-        _vehicleRepo.Setup(r => r.AddAsync(It.IsAny<Domain.Entities.Vehicle>(), default)).Returns(Task.CompletedTask);
+        _vehicleRepo.Setup(r => r.AddAsync(It.IsAny<FleetManager.Domain.Entities.Vehicle>(), default)).Returns(Task.CompletedTask);
         _unitOfWork.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var command = new CreateVehicleCommand(ValidVin, "Toyota", "Corolla", 2022, 0, StoreId);
@@ -108,7 +108,7 @@ public class CreateVehicleCommandTests
         _authService.Setup(a => a.CanAccessStore(It.IsAny<UserRole?>(), It.IsAny<Guid?>(), StoreId)).Returns(true);
         _vehicleRepo.Setup(r => r.ExistsByVinAsync(ValidVin, default)).ReturnsAsync(false);
         _storeRepo.Setup(r => r.ExistsAsync(StoreId, default)).ReturnsAsync(true);
-        _vehicleRepo.Setup(r => r.AddAsync(It.IsAny<Domain.Entities.Vehicle>(), default)).Returns(Task.CompletedTask);
+        _vehicleRepo.Setup(r => r.AddAsync(It.IsAny<FleetManager.Domain.Entities.Vehicle>(), default)).Returns(Task.CompletedTask);
         _unitOfWork.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
 
         var command = new CreateVehicleCommand(ValidVin, "Toyota", "Corolla", 2022, 0, StoreId);
