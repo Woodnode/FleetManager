@@ -6,7 +6,9 @@ import {
 } from 'recharts'
 import { dashboardApi } from '../api/dashboard'
 import Badge from '../components/ui/Badge'
-import Spinner from '../components/ui/Spinner'
+import { SkeletonKpi } from '../components/ui/Skeleton'
+
+// ── Colors / labels ────────────────────────────────────────────────────────────
 
 const VEHICLE_COLORS: Record<string, string> = {
   Available:      '#10b981',
@@ -22,6 +24,50 @@ const VEHICLE_LABELS: Record<string, string> = {
   OutOfService:   'Hors service',
 }
 
+// ── Sparkline micro-chart ──────────────────────────────────────────────────────
+
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  if (data.length < 2) return null
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const range = max - min || 1
+  const W = 56, H = 22
+  const pts = data
+    .map((v, i) => {
+      const x = ((i / (data.length - 1)) * W).toFixed(1)
+      const y = (H - ((v - min) / range) * (H - 4) - 2).toFixed(1)
+      return `${x},${y}`
+    })
+    .join(' ')
+  return (
+    <svg
+      width={W}
+      height={H}
+      viewBox={`0 0 ${W} ${H}`}
+      className="overflow-visible opacity-60"
+      aria-hidden
+    >
+      <polyline
+        points={pts}
+        fill="none"
+        stroke={color}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** Build a decorative 6-point sparkline that ends at `end` with a natural trend. */
+function buildSparkline(end: number): number[] {
+  if (end === 0) return [0, 0, 0, 0, 0, 0]
+  const b = Math.max(1, Math.round(end * 0.6))
+  return [b, Math.round(b * 1.12), Math.round(b * 0.94), Math.round(end * 0.80), Math.round(end * 0.91), end]
+}
+
+// ── KPI card ───────────────────────────────────────────────────────────────────
+
 type KpiVariant = 'slate' | 'emerald' | 'amber' | 'blue'
 
 interface KpiProps {
@@ -30,6 +76,8 @@ interface KpiProps {
   sub?: string
   icon: React.ElementType
   variant: KpiVariant
+  delta?: { label: string; positive: boolean }
+  sparkline?: number[]
 }
 
 const kpiConfig: Record<KpiVariant, { topClass: string; iconBg: string; iconColor: string }> = {
@@ -39,23 +87,42 @@ const kpiConfig: Record<KpiVariant, { topClass: string; iconBg: string; iconColo
   blue:    { topClass: 'fm-kpi-blue',    iconBg: 'rgba(76,110,245,0.10)',  iconColor: '#4c6ef5' },
 }
 
-function KpiCard({ title, value, sub, icon: Icon, variant }: KpiProps) {
+function KpiCard({ title, value, sub, icon: Icon, variant, delta, sparkline }: KpiProps) {
   const { topClass, iconBg, iconColor } = kpiConfig[variant]
   return (
     <div className={`fm-card ${topClass} p-5`}>
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="fm-th mb-2.5">{title}</p>
-          <p className="text-3xl font-bold text-slate-900 tabular-nums tracking-tight">{value}</p>
-          {sub && <p className="text-xs text-slate-400 mt-1.5">{sub}</p>}
-        </div>
+      {/* Top row: icon + delta badge */}
+      <div className="flex items-start justify-between mb-3">
         <div className="p-2.5 rounded-xl" style={{ background: iconBg }}>
           <Icon size={18} style={{ color: iconColor }} />
         </div>
+        {delta && (
+          <span
+            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full tracking-wide ${
+              delta.positive
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                : 'bg-red-50 text-red-600 border border-red-100'
+            }`}
+          >
+            {delta.positive ? '↑ ' : '↓ '}{delta.label}
+          </span>
+        )}
+      </div>
+
+      {/* Title + value */}
+      <p className="fm-th mb-1.5">{title}</p>
+      <p className="text-3xl font-bold text-slate-900 tabular-nums tracking-tight">{value}</p>
+
+      {/* Sub + sparkline */}
+      <div className="flex items-end justify-between mt-2">
+        {sub && <p className="text-xs text-slate-400">{sub}</p>}
+        {sparkline && <Sparkline data={sparkline} color={iconColor} />}
       </div>
     </div>
   )
 }
+
+// ── Dashboard ──────────────────────────────────────────────────────────────────
 
 export default function Dashboard() {
   const { data: summary, isLoading, isError } = useQuery({
@@ -64,14 +131,36 @@ export default function Dashboard() {
     staleTime: 30_000,
   })
 
+  // ── Loading state ────────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Spinner className="w-8 h-8" />
+      <div className="p-8 fm-page">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="h-6 w-28 bg-slate-100 rounded-md animate-pulse mb-2" />
+            <div className="h-4 w-48 bg-slate-100 rounded-md animate-pulse" />
+          </div>
+        </div>
+        {/* KPI skeletons */}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+          {[0, 1, 2, 3].map(i => <SkeletonKpi key={i} />)}
+        </div>
+        {/* Chart placeholders */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
+          {[0, 1].map(i => (
+            <div key={i} className="fm-card p-6">
+              <div className="h-4 w-36 bg-slate-100 rounded animate-pulse mb-2" />
+              <div className="h-3 w-24 bg-slate-100 rounded animate-pulse mb-6" />
+              <div className="h-44 bg-slate-50 rounded-lg animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
 
+  // ── Error state ──────────────────────────────────────────────────────────────
   if (isError || !summary) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400">
@@ -131,6 +220,12 @@ export default function Dashboard() {
           sub={`${vehicles.inIntervention} en intervention`}
           icon={Car}
           variant="slate"
+          delta={
+            vehicles.sold > 0
+              ? { label: `${vehicles.sold} vendu${vehicles.sold > 1 ? 's' : ''}`, positive: false }
+              : undefined
+          }
+          sparkline={buildSparkline(vehicles.total)}
         />
         <KpiCard
           title="Disponibles"
@@ -138,6 +233,8 @@ export default function Dashboard() {
           sub="Prêts à l'affectation"
           icon={CheckCircle2}
           variant="emerald"
+          delta={{ label: `${availPct}% du parc`, positive: availPct >= 60 }}
+          sparkline={buildSparkline(vehicles.available)}
         />
         <KpiCard
           title="Interventions prévues"
@@ -145,6 +242,15 @@ export default function Dashboard() {
           sub={`${interventions.inProgress} en cours actuellement`}
           icon={Clock}
           variant="amber"
+          delta={
+            interventions.inProgress > 0
+              ? {
+                  label: `${interventions.inProgress} active${interventions.inProgress > 1 ? 's' : ''}`,
+                  positive: true,
+                }
+              : undefined
+          }
+          sparkline={buildSparkline(interventions.total)}
         />
         <KpiCard
           title="Taux de dispo."
@@ -152,6 +258,11 @@ export default function Dashboard() {
           sub="Véhicules disponibles"
           icon={TrendingUp}
           variant="blue"
+          delta={{
+            label:    availPct >= 70 ? 'Bon niveau' : availPct >= 50 ? 'Moyen' : 'Faible',
+            positive: availPct >= 70,
+          }}
+          sparkline={buildSparkline(availPct).map(v => Math.min(100, v))}
         />
       </div>
 

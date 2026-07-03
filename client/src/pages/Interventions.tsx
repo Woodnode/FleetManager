@@ -10,18 +10,18 @@ import { storesApi } from '../api/stores'
 import { usersApi } from '../api/users'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
-import Spinner from '../components/ui/Spinner'
+import { SkeletonTable } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { createInterventionSchema, type CreateInterventionFormValues } from '../schemas/intervention'
 import type { Intervention, InterventionStatus, InterventionType, CreateInterventionRequest } from '../types'
 
+// ── Constants ──────────────────────────────────────────────────────────────────
+
 const FORM_DEFAULTS: CreateInterventionFormValues = {
   vehicleId: '', storeId: '', technicianId: '',
   type: 'Maintenance', plannedStartDate: '', plannedEndDate: '', comment: '',
 }
-
-// ── Constants ─────────────────────────────────────────────────────────────────
 
 const TYPE_OPTIONS: { value: InterventionType; label: string }[] = [
   { value: 'Maintenance', label: 'Maintenance' },
@@ -37,12 +37,82 @@ const STATUS_OPTIONS: { value: InterventionStatus; label: string }[] = [
   { value: 'Cancelled',  label: 'Annulée' },
 ]
 
+// ── Urgency helpers ────────────────────────────────────────────────────────────
+
+type Urgency = 'overdue' | 'soon' | 'inprogress' | 'none'
+
+const URGENCY_BORDER: Record<Urgency, string> = {
+  overdue:    '#ef4444',
+  soon:       '#f59e0b',
+  inprogress: '#4c6ef5',
+  none:       'transparent',
+}
+
+function getUrgency(i: Intervention): Urgency {
+  if (i.status === 'Completed' || i.status === 'Cancelled') return 'none'
+  const now   = Date.now()
+  const end   = new Date(i.plannedEndDate).getTime()
+  const start = new Date(i.plannedStartDate).getTime()
+  if (i.status === 'InProgress' && end < now) return 'overdue'
+  if (i.status === 'InProgress')              return 'inprogress'
+  if (i.status === 'Planned' && start < now)  return 'soon'
+  return 'none'
+}
+
+function relativeDate(dateStr: string): { label: string; color: string } {
+  const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000)
+  if (diff < -1) return { label: `En retard ${Math.abs(diff)}j`, color: '#ef4444' }
+  if (diff === -1) return { label: 'Hier',           color: '#f59e0b' }
+  if (diff === 0)  return { label: "Aujourd'hui",    color: '#f59e0b' }
+  if (diff <= 3)   return { label: `Dans ${diff}j`,  color: '#f59e0b' }
+  return { label: new Date(dateStr).toLocaleDateString('fr-FR'), color: '#94a3b8' }
+}
+
+// ── Sub-components ─────────────────────────────────────────────────────────────
+
+function TechnicianAvatar({ name }: { name?: string | null }) {
+  if (!name) return <span className="text-sm text-slate-400">—</span>
+  const initials = name.trim().split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+        style={{ background: 'rgba(124,58,237,0.10)', color: '#7c3aed' }}
+      >
+        {initials}
+      </div>
+      <span className="text-sm text-slate-500 truncate max-w-[110px]">{name}</span>
+    </div>
+  )
+}
+
+function ActionBtn({ onClick, icon, title, color }: {
+  onClick: () => void
+  icon: React.ReactNode
+  title: string
+  color: 'blue' | 'green' | 'red'
+}) {
+  const colors = {
+    blue:  'text-blue-600 hover:bg-blue-50',
+    green: 'text-emerald-600 hover:bg-emerald-50',
+    red:   'text-red-500 hover:bg-red-50',
+  }
+  return (
+    <button onClick={onClick} aria-label={title}
+      className={`p-1.5 rounded-md transition-colors ${colors[color]}`}>
+      {icon}
+    </button>
+  )
+}
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
 interface StatusAction {
   intervention: Intervention
   nextStatus: InterventionStatus
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Component ──────────────────────────────────────────────────────────────────
 
 export default function Interventions() {
   const qc = useQueryClient()
@@ -54,13 +124,9 @@ export default function Interventions() {
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null)
   const [comment, setComment]           = useState('')
 
-  // ── React Hook Form ──────────────────────────────────────────────────────────
+  // ── Form ─────────────────────────────────────────────────────────────────────
   const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    reset,
+    register, handleSubmit, watch, setValue, reset,
     formState: { errors },
   } = useForm<CreateInterventionFormValues>({
     resolver: zodResolver(createInterventionSchema),
@@ -77,8 +143,8 @@ export default function Interventions() {
   })
   const interventions = interventionsPage?.items ?? []
 
-  const handleStatusFilterChange = (value: string) => { setStatusFilter(value); setPage(1) }
-  const handleTypeFilterChange   = (value: string) => { setTypeFilter(value);   setPage(1) }
+  const handleStatusFilterChange = (v: string) => { setStatusFilter(v); setPage(1) }
+  const handleTypeFilterChange   = (v: string) => { setTypeFilter(v);   setPage(1) }
 
   const { data: vehicles = [] } = useQuery({
     queryKey: ['vehicles-select'],
@@ -127,17 +193,14 @@ export default function Interventions() {
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleStoreChange = (storeId: string) => {
-    // Remove stale technicians cache for the previously-selected store
     if (watchedStoreId) qc.removeQueries({ queryKey: ['technicians', watchedStoreId] })
     setValue('storeId', storeId, { shouldValidate: true })
     setValue('technicianId', '')
   }
 
-  const onSubmit = (data: CreateInterventionFormValues) => {
-    createM.mutate(data)
-  }
+  const onSubmit = (data: CreateInterventionFormValues) => createM.mutate(data)
 
-  const openAdd = () => { reset(FORM_DEFAULTS); setAddOpen(true) }
+  const openAdd  = () => { reset(FORM_DEFAULTS); setAddOpen(true) }
   const closeAdd = () => { reset(FORM_DEFAULTS); setAddOpen(false) }
 
   const handleStatusChange = () => {
@@ -147,8 +210,8 @@ export default function Interventions() {
       return
     }
     statusM.mutate({
-      id: statusAction.intervention.id,
-      status: statusAction.nextStatus,
+      id:      statusAction.intervention.id,
+      status:  statusAction.nextStatus,
       comment: comment || undefined,
     })
   }
@@ -179,7 +242,7 @@ export default function Interventions() {
       />
 
       {/* Filters */}
-      <div className="flex gap-3 mb-5">
+      <div className="flex gap-3 mb-4">
         <select value={statusFilter} onChange={e => handleStatusFilterChange(e.target.value)}
           className="fm-input" style={{ width: 'auto' }}>
           <option value="">Tous les statuts</option>
@@ -192,16 +255,30 @@ export default function Interventions() {
         </select>
       </div>
 
+      {/* Urgency legend */}
+      <div className="flex items-center gap-4 mb-3">
+        {([
+          { color: '#4c6ef5', label: 'En cours' },
+          { color: '#f59e0b', label: 'À démarrer / bientôt' },
+          { color: '#ef4444', label: 'En retard' },
+        ] as const).map(({ color, label }) => (
+          <div key={label} className="flex items-center gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color, opacity: 0.8 }} />
+            <span className="text-[11px] text-slate-400">{label}</span>
+          </div>
+        ))}
+      </div>
+
       {/* Table */}
-      <div className="fm-card overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center py-20"><Spinner className="w-7 h-7" /></div>
-        ) : (
+      {isLoading ? (
+        <SkeletonTable rows={6} cols={7} />
+      ) : (
+        <div className="fm-card overflow-hidden">
           <table className="w-full">
             <caption className="sr-only">Liste des interventions</caption>
             <thead>
               <tr style={{ background: '#fafbfd', borderBottom: '1px solid var(--border-light)' }}>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Véhicule</th>
+                <th scope="col" className="py-3.5 text-left fm-th" style={{ paddingLeft: 14, paddingRight: 20 }}>Véhicule</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Type</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Technicien</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Enseigne</th>
@@ -219,57 +296,105 @@ export default function Interventions() {
                       : 'Aucune intervention enregistrée'}
                   </td>
                 </tr>
-              ) : interventions.map(i => (
-                <tr key={i.id} className="transition-colors hover:bg-slate-50/80 group"
-                  style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td className="px-5 py-3.5">
-                    <p className="text-sm font-medium text-slate-900">{i.vehicleBrand} {i.vehicleModel}</p>
-                    <p className="text-xs text-slate-400 font-mono mt-0.5">{i.vehicleVin}</p>
-                  </td>
-                  <td className="px-5 py-3.5"><Badge value={i.type} label={i.typeLabel} /></td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500">{i.technicianFullName ?? '—'}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500">{i.storeName}</td>
-                  <td className="px-5 py-3.5"><Badge value={i.status} label={i.statusLabel} /></td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">
-                    {new Date(i.plannedStartDate).toLocaleDateString('fr-FR')}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {i.status === 'Planned' && (
-                        <ActionBtn onClick={() => openStatus(i, 'InProgress')}
-                          icon={<Play size={13} />} title="Démarrer" color="blue" />
+              ) : interventions.map(i => {
+                const urgency  = getUrgency(i)
+                const dateInfo = relativeDate(i.plannedStartDate)
+
+                const showProgress = i.status === 'InProgress'
+                const startMs = new Date(i.plannedStartDate).getTime()
+                const endMs   = new Date(i.plannedEndDate).getTime()
+                const progress = showProgress
+                  ? Math.min(100, Math.max(5, ((Date.now() - startMs) / (endMs - startMs)) * 100))
+                  : 0
+
+                return (
+                  <tr
+                    key={i.id}
+                    className="transition-colors hover:bg-slate-50/80 group"
+                    style={{
+                      borderBottom: '1px solid var(--border-light)',
+                      borderLeft:   `3px solid ${URGENCY_BORDER[urgency]}`,
+                    }}
+                  >
+                    {/* Véhicule */}
+                    <td className="py-3.5" style={{ paddingLeft: 14, paddingRight: 20 }}>
+                      <p className="text-sm font-medium text-slate-900">{i.vehicleBrand} {i.vehicleModel}</p>
+                      <p className="text-xs text-slate-400 font-mono mt-0.5">{i.vehicleVin}</p>
+                    </td>
+
+                    {/* Type */}
+                    <td className="px-5 py-3.5">
+                      <Badge value={i.type} label={i.typeLabel} />
+                    </td>
+
+                    {/* Technicien */}
+                    <td className="px-5 py-3.5">
+                      <TechnicianAvatar name={i.technicianFullName} />
+                    </td>
+
+                    {/* Enseigne */}
+                    <td className="px-5 py-3.5 text-sm text-slate-500">{i.storeName}</td>
+
+                    {/* Statut + progress bar */}
+                    <td className="px-5 py-3.5">
+                      <Badge value={i.status} label={i.statusLabel} />
+                      {showProgress && (
+                        <div className="mt-1.5 w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width:      `${progress}%`,
+                              background: urgency === 'overdue' ? '#ef4444' : '#4c6ef5',
+                            }}
+                          />
+                        </div>
                       )}
-                      {i.status === 'InProgress' && (
-                        <ActionBtn onClick={() => openStatus(i, 'Completed')}
-                          icon={<CheckCheck size={13} />} title="Terminer" color="green" />
-                      )}
-                      {(i.status === 'Planned' || i.status === 'InProgress') && (
-                        <ActionBtn onClick={() => openStatus(i, 'Cancelled')}
-                          icon={<XCircle size={13} />} title="Annuler" color="red" />
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+
+                    {/* Date début (relative) */}
+                    <td className="px-5 py-3.5 text-sm tabular-nums font-medium" style={{ color: dateInfo.color }}>
+                      {dateInfo.label}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {i.status === 'Planned' && (
+                          <ActionBtn onClick={() => openStatus(i, 'InProgress')}
+                            icon={<Play size={13} />} title="Démarrer" color="blue" />
+                        )}
+                        {i.status === 'InProgress' && (
+                          <ActionBtn onClick={() => openStatus(i, 'Completed')}
+                            icon={<CheckCheck size={13} />} title="Terminer" color="green" />
+                        )}
+                        {(i.status === 'Planned' || i.status === 'InProgress') && (
+                          <ActionBtn onClick={() => openStatus(i, 'Cancelled')}
+                            icon={<XCircle size={13} />} title="Annuler" color="red" />
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
-        )}
-        {!isLoading && interventionsPage && interventionsPage.totalPages > 1 && (
-          <Pagination
-            page={interventionsPage.page}
-            totalPages={interventionsPage.totalPages}
-            totalCount={interventionsPage.totalCount}
-            pageSize={interventionsPage.pageSize}
-            onPageChange={p => setPage(p)}
-          />
-        )}
-      </div>
+
+          {!isLoading && interventionsPage && interventionsPage.totalPages > 1 && (
+            <Pagination
+              page={interventionsPage.page}
+              totalPages={interventionsPage.totalPages}
+              totalCount={interventionsPage.totalCount}
+              pageSize={interventionsPage.pageSize}
+              onPageChange={p => setPage(p)}
+            />
+          )}
+        </div>
+      )}
 
       {/* ── Modale : Créer une intervention ── */}
       <Modal open={addOpen} onClose={closeAdd} title="Nouvelle intervention" size="md">
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
 
-          {/* Véhicule */}
           <div>
             <label htmlFor="int-vehicleId" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Véhicule <span className="text-red-400">*</span>
@@ -283,12 +408,9 @@ export default function Interventions() {
                 </option>
               ))}
             </select>
-            {errors.vehicleId && (
-              <p className="text-red-400 text-xs mt-1">{errors.vehicleId.message}</p>
-            )}
+            {errors.vehicleId && <p className="text-red-400 text-xs mt-1">{errors.vehicleId.message}</p>}
           </div>
 
-          {/* Type */}
           <div>
             <label htmlFor="int-type" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Type <span className="text-red-400">*</span>
@@ -298,38 +420,24 @@ export default function Interventions() {
             </select>
           </div>
 
-          {/* Enseigne */}
           <div>
             <label htmlFor="int-storeId" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Enseigne <span className="text-red-400">*</span>
             </label>
-            <select
-              id="int-storeId"
-              value={watchedStoreId}
-              onChange={e => handleStoreChange(e.target.value)}
-              className="fm-input"
-            >
+            <select id="int-storeId" value={watchedStoreId}
+              onChange={e => handleStoreChange(e.target.value)} className="fm-input">
               <option value="">Sélectionner une enseigne</option>
-              {stores.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
-            {errors.storeId && (
-              <p className="text-red-400 text-xs mt-1">{errors.storeId.message}</p>
-            )}
+            {errors.storeId && <p className="text-red-400 text-xs mt-1">{errors.storeId.message}</p>}
           </div>
 
-          {/* Technicien — activé uniquement après sélection d'une enseigne */}
           <div>
             <label htmlFor="int-technicianId" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Technicien <span className="text-red-400">*</span>
             </label>
-            <select
-              id="int-technicianId"
-              {...register('technicianId')}
-              disabled={!watchedStoreId || loadingTechs}
-              className="fm-input"
-            >
+            <select id="int-technicianId" {...register('technicianId')}
+              disabled={!watchedStoreId || loadingTechs} className="fm-input">
               <option value="">
                 {!watchedStoreId
                   ? "Sélectionnez d'abord une enseigne"
@@ -339,53 +447,37 @@ export default function Interventions() {
                       ? 'Aucun technicien dans cette enseigne'
                       : 'Sélectionner un technicien'}
               </option>
-              {technicians.map(t => (
-                <option key={t.id} value={t.id}>{t.fullName}</option>
-              ))}
+              {technicians.map(t => <option key={t.id} value={t.id}>{t.fullName}</option>)}
             </select>
-            {errors.technicianId && (
-              <p className="text-red-400 text-xs mt-1">{errors.technicianId.message}</p>
-            )}
+            {errors.technicianId && <p className="text-red-400 text-xs mt-1">{errors.technicianId.message}</p>}
           </div>
 
-          {/* Dates */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="int-startDate" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                 Date début <span className="text-red-400">*</span>
               </label>
               <input id="int-startDate" type="date" {...register('plannedStartDate')} className="fm-input" />
-              {errors.plannedStartDate && (
-                <p className="text-red-400 text-xs mt-1">{errors.plannedStartDate.message}</p>
-              )}
+              {errors.plannedStartDate && <p className="text-red-400 text-xs mt-1">{errors.plannedStartDate.message}</p>}
             </div>
             <div>
               <label htmlFor="int-endDate" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                 Date fin <span className="text-red-400">*</span>
               </label>
               <input id="int-endDate" type="date" {...register('plannedEndDate')} className="fm-input" />
-              {errors.plannedEndDate && (
-                <p className="text-red-400 text-xs mt-1">{errors.plannedEndDate.message}</p>
-              )}
+              {errors.plannedEndDate && <p className="text-red-400 text-xs mt-1">{errors.plannedEndDate.message}</p>}
             </div>
           </div>
 
-          {/* Commentaire */}
           <div>
             <label htmlFor="int-comment" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Commentaire
             </label>
-            <textarea
-              id="int-comment"
-              {...register('comment')}
-              rows={3}
-              placeholder="Description optionnelle..."
-              className="fm-input resize-none"
-            />
+            <textarea id="int-comment" {...register('comment')} rows={3}
+              placeholder="Description optionnelle..." className="fm-input resize-none" />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4"
-            style={{ borderTop: '1px solid var(--border-light)' }}>
+          <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
             <button type="button" onClick={closeAdd}
               className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
               Annuler
@@ -425,16 +517,10 @@ export default function Interventions() {
                     ? <>Raison <span className="text-red-400">*</span></>
                     : 'Commentaire de clôture'}
                 </label>
-                <textarea
-                  id="status-comment"
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
+                <textarea id="status-comment" value={comment} onChange={e => setComment(e.target.value)}
                   rows={3}
-                  placeholder={statusAction.nextStatus === 'Cancelled'
-                    ? "Raison de l'annulation..."
-                    : 'Optionnel...'}
-                  className="fm-input resize-none"
-                />
+                  placeholder={statusAction.nextStatus === 'Cancelled' ? "Raison de l'annulation..." : 'Optionnel...'}
+                  className="fm-input resize-none" />
               </div>
             )}
           </div>
@@ -457,29 +543,5 @@ export default function Interventions() {
         </div>
       </Modal>
     </div>
-  )
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function ActionBtn({ onClick, icon, title, color }: {
-  onClick: () => void
-  icon: React.ReactNode
-  title: string
-  color: 'blue' | 'green' | 'red'
-}) {
-  const colors = {
-    blue:  'text-blue-600 hover:bg-blue-50',
-    green: 'text-emerald-600 hover:bg-emerald-50',
-    red:   'text-red-500 hover:bg-red-50',
-  }
-  return (
-    <button
-      onClick={onClick}
-      aria-label={title}
-      className={`p-1.5 rounded-md transition-colors ${colors[color]}`}
-    >
-      {icon}
-    </button>
   )
 }
