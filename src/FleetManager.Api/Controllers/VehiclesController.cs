@@ -59,6 +59,7 @@ public class VehiclesController : ApiControllerBase
 
     /// <summary>Crée un nouveau véhicule. Non-Admin : storeId imposé par le JWT.</summary>
     [HttpPost]
+    [Authorize(Roles = "Admin,StoreManager")]
     [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -74,6 +75,7 @@ public class VehiclesController : ApiControllerBase
 
     /// <summary>Met à jour les informations d'un véhicule. Non-Admin : enseigne propre uniquement.</summary>
     [HttpPut("{id:guid}")]
+    [Authorize(Roles = "Admin,StoreManager")]
     [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

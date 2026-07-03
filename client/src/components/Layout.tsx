@@ -38,7 +38,7 @@ export default function Layout() {
             <LogoIcon size={32} />
             <div className="min-w-0">
               <p className="text-sm font-semibold text-white tracking-tight leading-tight">AutoNexus</p>
-              <p className="text-[11px] text-slate-600 mt-0.5">Gestion du parc auto</p>
+              <p className="text-[11px] text-slate-400 mt-0.5">Gestion du parc auto</p>
             </div>
           </div>
         </div>
@@ -71,13 +71,13 @@ export default function Layout() {
             </div>
             <div className="min-w-0">
               <p className="text-xs font-medium text-slate-300 truncate">{displayName}</p>
-              <p className="text-[11px] text-slate-600">{user?.storeId ? 'En enseigne' : 'Admin global'}</p>
+              <p className="text-[11px] text-slate-400">{user?.storeId ? 'En enseigne' : 'Admin global'}</p>
             </div>
           </div>
 
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-500 hover:text-slate-200 hover:bg-white/5 rounded-lg transition-all duration-150"
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-sm text-slate-400 hover:text-slate-100 hover:bg-white/5 rounded-lg transition-all duration-150"
           >
             <LogOut size={14} />
             Déconnexion
