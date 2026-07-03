@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Building2, Pencil, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { storesApi } from '../api/stores'
+import { vehiclesApi } from '../api/vehicles'
 import Modal from '../components/ui/Modal'
-import Spinner from '../components/ui/Spinner'
+import { SkeletonCard } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import { useAuth } from '../contexts/AuthContext'
 import { isAdminRole } from '../utils/auth'
@@ -15,7 +16,7 @@ import type { Store } from '../types'
 
 const FORM_DEFAULTS: CreateStoreFormValues = { name: '', address: '', postalCode: '', city: '' }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Store form ─────────────────────────────────────────────────────────────────
 
 function StoreForm({
   defaultValues = FORM_DEFAULTS,
@@ -102,6 +103,92 @@ function StoreForm({
   )
 }
 
+// ── Store card ─────────────────────────────────────────────────────────────────
+
+function StoreCard({ store: s, stats, isAdmin, onEdit, onDelete }: {
+  store: Store
+  stats: { total: number; available: number; inIntervention: number }
+  isAdmin: boolean
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  const availPct = stats.total > 0 ? Math.round((stats.available / stats.total) * 100) : 0
+
+  return (
+    <div className="fm-card p-5 group">
+      {/* Header: icon + name + actions */}
+      <div className="flex items-start gap-3 mb-4">
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: 'rgba(76,110,245,0.08)', border: '1px solid rgba(76,110,245,0.15)' }}
+        >
+          <Building2 size={15} style={{ color: 'var(--brand-500)' }} />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-slate-900 truncate tracking-tight">{s.name}</p>
+          <p className="text-xs text-slate-400 mt-0.5 truncate">{s.address || '—'}</p>
+          {(s.postalCode || s.city) && (
+            <p className="text-xs text-slate-400 truncate">{s.postalCode} {s.city}</p>
+          )}
+        </div>
+
+        {isAdmin && (
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <button onClick={onEdit} aria-label="Modifier l'enseigne"
+              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+              <Pencil size={13} />
+            </button>
+            <button onClick={onDelete} aria-label="Supprimer l'enseigne"
+              className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+              <Trash2 size={13} />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Stats + availability bar */}
+      <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: 12 }}>
+        <div className="flex items-center justify-between text-xs mb-2">
+          <span className="text-slate-400">
+            {stats.total} véhicule{stats.total !== 1 ? 's' : ''}
+          </span>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <span className="font-medium text-slate-600">{stats.available} dispo</span>
+            </span>
+            {stats.inIntervention > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
+                <span className="font-medium text-slate-600">{stats.inIntervention} en cours</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Availability progress bar */}
+        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${availPct}%`,
+              background: availPct >= 70
+                ? '#10b981'   // green
+                : availPct >= 40
+                  ? '#f59e0b' // amber
+                  : '#ef4444', // red
+            }}
+          />
+        </div>
+        <p className="text-[10px] text-slate-400 mt-1">
+          {availPct}% disponibilité
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function Stores() {
@@ -109,13 +196,34 @@ export default function Stores() {
   const { user } = useAuth()
   const isAdmin = isAdminRole(user?.role)
 
-  const [addOpen, setAddOpen]       = useState(false)
-  const [editStore, setEditStore]   = useState<Store | null>(null)
+  const [addOpen, setAddOpen]         = useState(false)
+  const [editStore, setEditStore]     = useState<Store | null>(null)
   const [deleteStore, setDeleteStore] = useState<Store | null>(null)
 
   const { data: stores = [], isLoading } = useQuery({
-    queryKey: ['stores'], queryFn: storesApi.getAll,
+    queryKey: ['stores'],
+    queryFn: storesApi.getAll,
   })
+
+  // Fetch all vehicles to compute per-store stats
+  const { data: allVehicles = [] } = useQuery({
+    queryKey: ['vehicles-all'],
+    queryFn: () => vehiclesApi.getAll(1, 500).then(r => r.items),
+    staleTime: 60_000,
+  })
+
+  const storeStats = useMemo(() => {
+    const map: Record<string, { total: number; available: number; inIntervention: number }> = {}
+    for (const v of allVehicles) {
+      if (!map[v.storeId]) map[v.storeId] = { total: 0, available: 0, inIntervention: 0 }
+       
+      const entry = map[v.storeId]!
+      entry.total++
+      if (v.status === 'Available')      entry.available++
+      if (v.status === 'InIntervention') entry.inIntervention++
+    }
+    return map
+  }, [allVehicles])
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['stores'] })
 
@@ -126,8 +234,7 @@ export default function Stores() {
   })
 
   const updateM = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: CreateStoreFormValues }) =>
-      storesApi.update(id, data),
+    mutationFn: ({ id, data }: { id: string; data: CreateStoreFormValues }) => storesApi.update(id, data),
     onSuccess: () => { invalidate(); setEditStore(null); toast.success('Enseigne modifiée') },
     onError:   () => toast.error('Erreur lors de la modification'),
   })
@@ -135,7 +242,7 @@ export default function Stores() {
   const deleteM = useMutation({
     mutationFn: (id: string) => storesApi.remove(id),
     onSuccess: () => { invalidate(); setDeleteStore(null); toast.success('Enseigne supprimée') },
-    onError:   () => toast.error('Impossible de supprimer : l\'enseigne contient des véhicules'),
+    onError:   () => toast.error("Impossible de supprimer : l'enseigne contient des véhicules"),
   })
 
   return (
@@ -151,7 +258,9 @@ export default function Stores() {
       />
 
       {isLoading ? (
-        <div className="flex justify-center py-20"><Spinner className="w-7 h-7" /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
+        </div>
       ) : stores.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center py-16 rounded-xl text-slate-400"
@@ -173,43 +282,14 @@ export default function Stores() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {stores.map(s => (
-            <div key={s.id} className="fm-card p-5 group">
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(76,110,245,0.08)', border: '1px solid rgba(76,110,245,0.15)' }}
-                >
-                  <Building2 size={15} style={{ color: 'var(--brand-500)' }} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-slate-900 truncate tracking-tight">{s.name}</p>
-                  <p className="text-xs text-slate-400 mt-0.5 truncate">{s.address || '—'}</p>
-                  {(s.postalCode || s.city) && (
-                    <p className="text-xs text-slate-400 truncate">{s.postalCode} {s.city}</p>
-                  )}
-                </div>
-
-                {/* Admin actions */}
-                {isAdmin && (
-                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    <button
-                      onClick={() => setEditStore(s)}
-                      aria-label="Modifier l'enseigne"
-                      className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                    <button
-                      onClick={() => setDeleteStore(s)}
-                      aria-label="Supprimer l'enseigne"
-                      className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
+            <StoreCard
+              key={s.id}
+              store={s}
+              stats={storeStats[s.id] ?? { total: 0, available: 0, inIntervention: 0 }}
+              isAdmin={isAdmin}
+              onEdit={() => setEditStore(s)}
+              onDelete={() => setDeleteStore(s)}
+            />
           ))}
         </div>
       )}

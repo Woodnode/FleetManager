@@ -2,18 +2,20 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, RefreshCw, Search } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, LayoutList, LayoutGrid, Car } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { vehiclesApi } from '../api/vehicles'
 import { storesApi } from '../api/stores'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
-import Spinner from '../components/ui/Spinner'
+import { SkeletonTable } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
 import { createVehicleSchema, updateVehicleSchema, type CreateVehicleFormValues, type UpdateVehicleFormValues } from '../schemas/vehicle'
 import type { Vehicle, VehicleStatus, CreateVehicleRequest, UpdateVehicleRequest, Store } from '../types'
+
+// ── Constants ──────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS: { value: VehicleStatus; label: string }[] = [
   { value: 'Available',      label: 'Disponible' },
@@ -22,7 +24,24 @@ const STATUS_OPTIONS: { value: VehicleStatus; label: string }[] = [
   { value: 'OutOfService',   label: 'Hors service' },
 ]
 
+const STATUS_PILLS = [
+  { value: '',               label: 'Tous' },
+  { value: 'Available',      label: 'Disponibles' },
+  { value: 'InIntervention', label: 'En intervention' },
+  { value: 'Sold',           label: 'Vendus' },
+  { value: 'OutOfService',   label: 'Hors service' },
+]
+
+const STATUS_DOT: Record<VehicleStatus, string> = {
+  Available:      '#10b981',
+  InIntervention: '#4c6ef5',
+  Sold:           '#94a3b8',
+  OutOfService:   '#ef4444',
+}
+
 const inputCls = 'fm-input'
+
+// ── Small helpers ──────────────────────────────────────────────────────────────
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null
@@ -37,7 +56,91 @@ function label(text: string, htmlFor: string, required = false) {
   )
 }
 
-interface CreateVehicleFormProps { stores: Store[]; onSubmit: (d: CreateVehicleRequest) => void; pending: boolean; onCancel: () => void }
+// ── Empty state ────────────────────────────────────────────────────────────────
+
+function EmptyState({ search, statusFilter, onReset }: {
+  search: string
+  statusFilter: string
+  onReset: () => void
+}) {
+  const filtered = !!(search || statusFilter)
+  return (
+    <div className="flex flex-col items-center justify-center py-20 gap-2">
+      <div
+        className="w-14 h-14 rounded-2xl flex items-center justify-center mb-2"
+        style={{ background: 'rgba(100,116,139,0.06)', border: '1.5px dashed #e2e8f0' }}
+      >
+        <Car size={24} className="text-slate-300" />
+      </div>
+      <p className="text-sm font-semibold text-slate-500">
+        {filtered ? 'Aucun résultat trouvé' : 'Aucun véhicule enregistré'}
+      </p>
+      <p className="text-xs text-slate-400">
+        {filtered
+          ? 'Essayez de modifier vos filtres'
+          : 'Ajoutez votre premier véhicule avec le bouton ci-dessus'}
+      </p>
+      {filtered && (
+        <button
+          onClick={onReset}
+          className="mt-1 text-xs font-medium transition-opacity hover:opacity-75"
+          style={{ color: 'var(--brand-500)' }}
+        >
+          Réinitialiser les filtres
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ── Vehicle card (grid view) ───────────────────────────────────────────────────
+
+function VehicleCard({ vehicle: v, canDelete, onEdit, onStatus, onDelete }: {
+  vehicle: Vehicle
+  canDelete: boolean
+  onEdit: () => void
+  onStatus: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className="fm-card p-5 group">
+      <div className="flex items-start justify-between mb-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-slate-900 text-sm truncate">{v.brand} {v.model}</p>
+          <p className="text-[11px] font-mono text-slate-400 mt-0.5 tracking-wide">{v.vin}</p>
+        </div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+          <ActionBtn onClick={onStatus} icon={<RefreshCw size={12} />} title="Changer le statut" color="blue" />
+          <ActionBtn onClick={onEdit} icon={<Pencil size={12} />} title="Modifier" color="slate" />
+          {canDelete && <ActionBtn onClick={onDelete} icon={<Trash2 size={12} />} title="Supprimer" color="red" />}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-2 h-2 rounded-full shrink-0" style={{ background: STATUS_DOT[v.status] }} />
+        <Badge value={v.status} label={v.statusLabel} />
+      </div>
+
+      <div
+        className="flex items-center justify-between text-xs text-slate-400 pt-3"
+        style={{ borderTop: '1px solid var(--border-light)' }}
+      >
+        <span className="font-medium">{v.year}</span>
+        <span className="tabular-nums">{v.mileage.toLocaleString('fr-FR')} km</span>
+        <span className="truncate max-w-[96px] ml-2">{v.storeName}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Create / Edit forms ────────────────────────────────────────────────────────
+
+interface CreateVehicleFormProps {
+  stores: Store[]
+  onSubmit: (d: CreateVehicleRequest) => void
+  pending: boolean
+  onCancel: () => void
+}
 
 function CreateVehicleForm({ stores, onSubmit, pending, onCancel }: CreateVehicleFormProps) {
   const { register, handleSubmit, formState: { errors } } = useForm<CreateVehicleFormValues>({
@@ -104,7 +207,13 @@ function CreateVehicleForm({ stores, onSubmit, pending, onCancel }: CreateVehicl
   )
 }
 
-interface EditVehicleFormProps { vehicle: Vehicle; stores: Store[]; onSubmit: (d: UpdateVehicleRequest) => void; pending: boolean; onCancel: () => void }
+interface EditVehicleFormProps {
+  vehicle: Vehicle
+  stores: Store[]
+  onSubmit: (d: UpdateVehicleRequest) => void
+  pending: boolean
+  onCancel: () => void
+}
 
 function EditVehicleForm({ vehicle, stores, onSubmit, pending, onCancel }: EditVehicleFormProps) {
   const { register, handleSubmit, formState: { errors } } = useForm<UpdateVehicleFormValues>({
@@ -158,19 +267,22 @@ function EditVehicleForm({ vehicle, stores, onSubmit, pending, onCancel }: EditV
   )
 }
 
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export default function Vehicles() {
   const qc = useQueryClient()
   const { user } = useAuth()
   const canDelete = user?.role === 'Admin' || user?.role === 'StoreManager'
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
-  const [page, setPage] = useState(1)
-  const [addOpen, setAddOpen] = useState(false)
-  const [editVehicle, setEditVehicle] = useState<Vehicle | null>(null)
+  const [page, setPage]                 = useState(1)
+  const [viewMode, setViewMode]         = useState<'table' | 'grid'>('table')
+  const [addOpen, setAddOpen]           = useState(false)
+  const [editVehicle, setEditVehicle]   = useState<Vehicle | null>(null)
   const [statusVehicle, setStatusVehicle] = useState<Vehicle | null>(null)
   const [deleteVehicle, setDeleteVehicle] = useState<Vehicle | null>(null)
-  const [newStatus, setNewStatus] = useState<VehicleStatus>('Available')
+  const [newStatus, setNewStatus]       = useState<VehicleStatus>('Available')
 
   const { data: vehiclesPage, isLoading } = useQuery({
     queryKey: ['vehicles', page, search, statusFilter],
@@ -178,6 +290,7 @@ export default function Vehicles() {
     staleTime: 30_000,
   })
   const vehicles = vehiclesPage?.items ?? []
+
   const { data: stores = [] } = useQuery({ queryKey: ['stores'], queryFn: storesApi.getAll, staleTime: 60_000 })
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['vehicles'] })
@@ -185,7 +298,7 @@ export default function Vehicles() {
   const createM = useMutation({
     mutationFn: (d: CreateVehicleRequest) => vehiclesApi.create(d),
     onSuccess: () => { invalidate(); setAddOpen(false); toast.success('Véhicule ajouté') },
-    onError:   () => toast.error('Erreur lors de l\'ajout'),
+    onError:   () => toast.error("Erreur lors de l'ajout"),
   })
 
   const updateM = useMutation({
@@ -206,17 +319,9 @@ export default function Vehicles() {
     onError:   () => toast.error('Erreur lors de la suppression'),
   })
 
-  const handlePageChange = (newPage: number) => setPage(newPage)
-
-  const handleSearchChange = (value: string) => {
-    setSearch(value)
-    setPage(1)
-  }
-
-  const handleStatusChange = (value: string) => {
-    setStatusFilter(value)
-    setPage(1)
-  }
+  const handleSearchChange = (value: string) => { setSearch(value); setPage(1) }
+  const handleStatusChange = (value: string) => { setStatusFilter(value); setPage(1) }
+  const resetFilters = () => { handleSearchChange(''); handleStatusChange('') }
 
   return (
     <div className="p-8 fm-page">
@@ -224,88 +329,181 @@ export default function Vehicles() {
         title="Véhicules"
         subtitle={`${vehiclesPage?.totalCount ?? 0} véhicule${(vehiclesPage?.totalCount ?? 0) !== 1 ? 's' : ''} dans le parc`}
         action={
-          <button onClick={() => setAddOpen(true)}
-            className="fm-btn-primary">
+          <button onClick={() => setAddOpen(true)} className="fm-btn-primary">
             <Plus size={15} />Ajouter un véhicule
           </button>
         }
       />
 
-      {/* Filters */}
-      <div className="flex gap-3 mb-5">
-        <div className="relative flex-1 max-w-sm">
+      {/* Toolbar: pills + search + view toggle */}
+      <div className="flex items-center gap-2 flex-wrap mb-5">
+        {/* Status pills */}
+        {STATUS_PILLS.map(pill => (
+          <button
+            key={pill.value}
+            onClick={() => handleStatusChange(pill.value)}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              statusFilter === pill.value
+                ? 'bg-slate-900 text-white shadow-sm'
+                : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-slate-700'
+            }`}
+          >
+            {pill.label}
+          </button>
+        ))}
+
+        <div className="flex-1 min-w-[8px]" />
+
+        {/* Search */}
+        <div className="relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          <input type="text" placeholder="VIN, marque, modèle..." value={search}
+          <input
+            type="text"
+            placeholder="VIN, marque, modèle..."
+            value={search}
             onChange={e => handleSearchChange(e.target.value)}
-            className="fm-input pl-9" />
-        </div>
-        <select value={statusFilter} onChange={e => handleStatusChange(e.target.value)}
-          className="fm-input" style={{ width: 'auto' }}>
-          <option value="">Tous les statuts</option>
-          {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-        </select>
-      </div>
-
-      {/* Table */}
-      <div className="fm-card overflow-hidden">
-        {isLoading ? (
-          <div className="flex justify-center py-20"><Spinner className="w-7 h-7" /></div>
-        ) : (
-          <table className="w-full">
-            <caption className="sr-only">Liste des véhicules du parc</caption>
-            <thead>
-              <tr style={{ background: '#fafbfd', borderBottom: '1px solid var(--border-light)' }}>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">VIN</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Marque / Modèle</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Année</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Kilométrage</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Statut</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Enseigne</th>
-                <th scope="col" className="px-5 py-3.5 text-right fm-th">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {vehicles.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-14 text-center text-sm text-slate-400">
-                  {search || statusFilter ? 'Aucun véhicule correspond aux filtres' : 'Aucun véhicule enregistré'}
-                </td></tr>
-              ) : vehicles.map(v => (
-                <tr key={v.id} className="transition-colors hover:bg-slate-50/80 group"
-                  style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td className="px-5 py-3.5 font-mono text-xs text-slate-500 tracking-wide">{v.vin}</td>
-                  <td className="px-5 py-3.5">
-                    <span className="text-sm font-medium text-slate-900">{v.brand} {v.model}</span>
-                  </td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500">{v.year}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">
-                    {v.mileage.toLocaleString('fr-FR')} km
-                  </td>
-                  <td className="px-5 py-3.5"><Badge value={v.status} label={v.statusLabel} /></td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ActionBtn onClick={() => { setNewStatus(v.status); setStatusVehicle(v) }} icon={<RefreshCw size={13} />} title="Changer le statut" color="blue" />
-                      <ActionBtn onClick={() => setEditVehicle(v)} icon={<Pencil size={13} />} title="Modifier" color="slate" />
-                      {canDelete && <ActionBtn onClick={() => setDeleteVehicle(v)} icon={<Trash2 size={13} />} title="Supprimer" color="red" />}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {!isLoading && vehiclesPage && vehiclesPage.totalPages > 1 && (
-          <Pagination
-            page={vehiclesPage.page}
-            totalPages={vehiclesPage.totalPages}
-            totalCount={vehiclesPage.totalCount}
-            pageSize={vehiclesPage.pageSize}
-            onPageChange={handlePageChange}
+            className="fm-input pl-9"
+            style={{ width: 210 }}
           />
-        )}
+        </div>
+
+        {/* View toggle */}
+        <div className="flex gap-0.5 p-1 bg-slate-100 rounded-lg">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+            aria-label="Vue tableau"
+          >
+            <LayoutList size={14} />
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+            aria-label="Vue grille"
+          >
+            <LayoutGrid size={14} />
+          </button>
+        </div>
       </div>
 
-      {/* Add Modal */}
+      {/* ── Table view ── */}
+      {viewMode === 'table' && (
+        isLoading ? (
+          <SkeletonTable rows={6} cols={7} />
+        ) : (
+          <div className="fm-card overflow-hidden">
+            <table className="w-full">
+              <caption className="sr-only">Liste des véhicules du parc</caption>
+              <thead>
+                <tr style={{ background: '#fafbfd', borderBottom: '1px solid var(--border-light)' }}>
+                  <th scope="col" className="px-5 py-3.5 text-left fm-th">VIN</th>
+                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Marque / Modèle</th>
+                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Année</th>
+                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Kilométrage</th>
+                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Statut</th>
+                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Enseigne</th>
+                  <th scope="col" className="px-5 py-3.5 text-right fm-th">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vehicles.length === 0 ? (
+                  <tr>
+                    <td colSpan={7}>
+                      <EmptyState search={search} statusFilter={statusFilter} onReset={resetFilters} />
+                    </td>
+                  </tr>
+                ) : vehicles.map(v => (
+                  <tr key={v.id} className="transition-colors hover:bg-slate-50/80 group"
+                    style={{ borderBottom: '1px solid var(--border-light)' }}>
+                    <td className="px-5 py-3.5 font-mono text-xs text-slate-500 tracking-wide">{v.vin}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: STATUS_DOT[v.status] }} />
+                        <span className="text-sm font-medium text-slate-900">{v.brand} {v.model}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3.5 text-sm text-slate-500">{v.year}</td>
+                    <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">
+                      {v.mileage.toLocaleString('fr-FR')} km
+                    </td>
+                    <td className="px-5 py-3.5"><Badge value={v.status} label={v.statusLabel} /></td>
+                    <td className="px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ActionBtn onClick={() => { setNewStatus(v.status); setStatusVehicle(v) }} icon={<RefreshCw size={13} />} title="Changer le statut" color="blue" />
+                        <ActionBtn onClick={() => setEditVehicle(v)} icon={<Pencil size={13} />} title="Modifier" color="slate" />
+                        {canDelete && <ActionBtn onClick={() => setDeleteVehicle(v)} icon={<Trash2 size={13} />} title="Supprimer" color="red" />}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!isLoading && vehiclesPage && vehiclesPage.totalPages > 1 && (
+              <Pagination
+                page={vehiclesPage.page}
+                totalPages={vehiclesPage.totalPages}
+                totalCount={vehiclesPage.totalCount}
+                pageSize={vehiclesPage.pageSize}
+                onPageChange={p => setPage(p)}
+              />
+            )}
+          </div>
+        )
+      )}
+
+      {/* ── Grid view ── */}
+      {viewMode === 'grid' && (
+        isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="fm-card p-5 space-y-3 animate-pulse">
+                <div className="h-4 w-3/4 bg-slate-100 rounded" />
+                <div className="h-3 w-1/2 bg-slate-100 rounded" />
+                <div className="h-5 w-20 bg-slate-100 rounded-full" />
+                <div className="pt-2 flex justify-between">
+                  <div className="h-3 w-10 bg-slate-100 rounded" />
+                  <div className="h-3 w-20 bg-slate-100 rounded" />
+                  <div className="h-3 w-16 bg-slate-100 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : vehicles.length === 0 ? (
+          <div className="fm-card">
+            <EmptyState search={search} statusFilter={statusFilter} onReset={resetFilters} />
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+              {vehicles.map(v => (
+                <VehicleCard
+                  key={v.id}
+                  vehicle={v}
+                  canDelete={canDelete}
+                  onEdit={() => setEditVehicle(v)}
+                  onStatus={() => { setNewStatus(v.status); setStatusVehicle(v) }}
+                  onDelete={() => setDeleteVehicle(v)}
+                />
+              ))}
+            </div>
+            {vehiclesPage && vehiclesPage.totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination
+                  page={vehiclesPage.page}
+                  totalPages={vehiclesPage.totalPages}
+                  totalCount={vehiclesPage.totalCount}
+                  pageSize={vehiclesPage.pageSize}
+                  onPageChange={p => setPage(p)}
+                />
+              </div>
+            )}
+          </>
+        )
+      )}
+
+      {/* ── Modals ── */}
+
       <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un véhicule" size="md">
         <CreateVehicleForm
           key={addOpen ? 'open' : 'closed'}
@@ -316,7 +514,6 @@ export default function Vehicles() {
         />
       </Modal>
 
-      {/* Edit Modal */}
       {editVehicle && (
         <Modal open onClose={() => setEditVehicle(null)} title={`Modifier — ${editVehicle.brand} ${editVehicle.model}`} size="md">
           <EditVehicleForm
@@ -330,7 +527,6 @@ export default function Vehicles() {
         </Modal>
       )}
 
-      {/* Status Modal */}
       <Modal open={!!statusVehicle} onClose={() => setStatusVehicle(null)} title="Changer le statut" size="sm">
         <div className="space-y-4">
           <p className="text-sm text-slate-500">
@@ -363,7 +559,6 @@ export default function Vehicles() {
         </div>
       </Modal>
 
-      {/* Delete Modal */}
       <Modal open={!!deleteVehicle} onClose={() => setDeleteVehicle(null)} title="Supprimer le véhicule" size="sm">
         <p className="text-sm text-slate-600">
           Vous êtes sur le point de supprimer{' '}
@@ -386,8 +581,13 @@ export default function Vehicles() {
   )
 }
 
+// ── ActionBtn ──────────────────────────────────────────────────────────────────
+
 function ActionBtn({ onClick, icon, title, color }: {
-  onClick: () => void; icon: React.ReactNode; title: string; color: 'blue' | 'slate' | 'red'
+  onClick: () => void
+  icon: React.ReactNode
+  title: string
+  color: 'blue' | 'slate' | 'red'
 }) {
   const colors = {
     blue:  'text-slate-400 hover:text-blue-600 hover:bg-blue-50',
