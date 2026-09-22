@@ -99,8 +99,9 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // JWT Authentication
-var jwtSecret = builder.Configuration["JwtSettings:Secret"]
-    ?? throw new InvalidOperationException("JwtSettings:Secret is not configured.");
+var jwtSecret = JwtSecretValidator.Validate(
+    builder.Configuration["JwtSettings:Secret"],
+    builder.Environment.IsDevelopment());
 
 var jwtIssuer = builder.Configuration["JwtSettings:Issuer"]
     ?? throw new InvalidOperationException("JwtSettings:Issuer is not configured.");
