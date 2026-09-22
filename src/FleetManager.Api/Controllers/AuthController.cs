@@ -1,3 +1,4 @@
+using FleetManager.Api.Infrastructure;
 using FleetManager.Api.DTOs.Requests;
 using FleetManager.Application.Auth.Commands;
 using FleetManager.Application.Interfaces;
@@ -12,11 +13,13 @@ public class AuthController : ApiControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
+    private readonly AuthCookiePolicy _cookies;
 
-    public AuthController(IMediator mediator, ICurrentUserService currentUser)
+    public AuthController(IMediator mediator, ICurrentUserService currentUser, AuthCookiePolicy cookies)
     {
         _mediator    = mediator;
         _currentUser = currentUser;
+        _cookies = cookies;
     }
 
     /// <summary>
@@ -106,14 +109,9 @@ public class AuthController : ApiControllerBase
     {
         await _mediator.Send(new LogoutCommand(), cancellationToken);
 
-        var cookieOptions = new CookieOptions
-        {
-            HttpOnly = true,
-            Secure   = true,
-            SameSite = SameSiteMode.None,
-        };
-        Response.Cookies.Delete("access_token",  cookieOptions);
-        Response.Cookies.Delete("refresh_token", cookieOptions);
+        // Mêmes attributs qu'à la pose, sinon le navigateur ne supprime pas les cookies.
+        Response.Cookies.Delete(AuthCookiePolicy.AccessTokenCookie,  _cookies.Build());
+        Response.Cookies.Delete(AuthCookiePolicy.RefreshTokenCookie, _cookies.Build(path: AuthCookiePolicy.RefreshTokenPath));
         return NoContent();
     }
 
@@ -143,24 +141,13 @@ public class AuthController : ApiControllerBase
 
     private void SetTokenCookies(string accessToken, string? refreshToken)
     {
-        Response.Cookies.Append("access_token", accessToken, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure   = true,
-            SameSite = SameSiteMode.None,
-            Expires  = DateTimeOffset.UtcNow.AddMinutes(15)
-        });
+        Response.Cookies.Append(AuthCookiePolicy.AccessTokenCookie, accessToken,
+            _cookies.Build(expires: DateTimeOffset.UtcNow.AddMinutes(15)));
 
         if (refreshToken is not null)
         {
-            Response.Cookies.Append("refresh_token", refreshToken, new CookieOptions
-            {
-                HttpOnly = true,
-                Secure   = true,
-                SameSite = SameSiteMode.None,
-                Expires  = DateTimeOffset.UtcNow.AddDays(7),
-                Path     = "/api/v1/auth/refresh"
-            });
+            Response.Cookies.Append(AuthCookiePolicy.RefreshTokenCookie, refreshToken,
+                _cookies.Build(expires: DateTimeOffset.UtcNow.AddDays(7), path: AuthCookiePolicy.RefreshTokenPath));
         }
     }
 }

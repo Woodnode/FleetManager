@@ -155,6 +155,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+// Cookies d'authentification : Lax en production (même origine via le relais), None en local.
+builder.Services.AddSingleton(AuthCookiePolicy.FromConfiguration(builder.Configuration["Auth:CookieSameSite"]));
+
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options =>
 {
