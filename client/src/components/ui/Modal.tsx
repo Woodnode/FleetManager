@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 
@@ -21,7 +22,10 @@ export default function Modal({ open, onClose, title, children, size = 'md' }: M
 
   if (!open) return null
 
-  return (
+  // Portail vers <body> : les pages ont une animation d'entrée (.fm-page) dont le transform
+  // persiste et ferait de la page le repère des éléments "fixed" : la modale serait alors
+  // positionnée et recouverte par rapport à la page, et non à la fenêtre.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className={`fm-modal relative w-full ${sizes[size]} max-h-[90vh] overflow-y-auto`}>
@@ -37,6 +41,7 @@ export default function Modal({ open, onClose, title, children, size = 'md' }: M
         </div>
         <div className="px-6 py-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
