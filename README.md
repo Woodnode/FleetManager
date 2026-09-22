@@ -26,7 +26,7 @@ A full-stack fleet management application built with **ASP.NET Core 8** and **Re
 | Architecture | Clean Architecture + DDD |
 | Messaging | MediatR (CQRS) |
 | ORM | Entity Framework Core 8 |
-| Database | SQL Server 2022 |
+| Database | PostgreSQL 16 (Npgsql) |
 | Validation | FluentValidation (pipeline behavior) |
 | Auth | JWT Bearer + httpOnly cookies + Refresh Tokens |
 | Logging | Serilog (console + rolling file) |
@@ -110,10 +110,19 @@ FleetManagerV2/
 - [Node.js 20+](https://nodejs.org/)
 - [Docker + Docker Compose](https://www.docker.com/)
 
+### Configure secrets
+
+Secrets are never committed. Copy the template and fill in random values:
+
+```bash
+cp .env.example .env
+# POSTGRES_PASSWORD=...   JWT_SECRET=... (32+ characters, e.g. `openssl rand -base64 32`)
+```
+
 ### Run with Docker Compose (recommended)
 
 ```bash
-# Start SQL Server + API
+# Start PostgreSQL + API
 docker compose up --build
 ```
 
@@ -121,13 +130,16 @@ The API will be available at `http://localhost:5000`.
 
 ### Run locally (development)
 
-**1. Start SQL Server**
+**1. Start PostgreSQL**
 ```bash
-docker compose up sqlserver -d
+docker compose up postgres -d
 ```
 
 **2. Start the API**
-```bash
+
+The connection string in `appsettings.json` has no password: provide it through an environment variable (PowerShell shown, same value as `POSTGRES_PASSWORD` in `.env`).
+```powershell
+$env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=fleetmanager;Username=fleetmanager;Password=<POSTGRES_PASSWORD>"
 cd src/FleetManager.Api
 dotnet run
 # API: https://localhost:5290 — Swagger UI at /
