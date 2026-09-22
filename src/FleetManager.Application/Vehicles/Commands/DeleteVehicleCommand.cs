@@ -1,5 +1,6 @@
 using FleetManager.Application.Common;
 using FleetManager.Application.Interfaces;
+using FleetManager.Domain.Exceptions;
 using FleetManager.Domain.Interfaces;
 using MediatR;
 
@@ -35,7 +36,15 @@ public class DeleteVehicleCommandHandler : IRequestHandler<DeleteVehicleCommand,
         if (!_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, vehicle.StoreId))
             return Result.Failure(Error.Forbidden("Vous ne pouvez pas supprimer un véhicule d'une autre enseigne."));
 
-        vehicle.SoftDelete();
+        try
+        {
+            vehicle.SoftDelete();
+        }
+        catch (DomainException ex)
+        {
+            return Result.Failure(Error.Conflict(ex.Message));
+        }
+
         _vehicleRepository.Update(vehicle);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

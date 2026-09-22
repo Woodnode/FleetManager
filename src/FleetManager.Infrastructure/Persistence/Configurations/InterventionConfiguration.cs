@@ -20,6 +20,10 @@ public class InterventionConfiguration : IEntityTypeConfiguration<Intervention>
                .HasForeignKey(i => i.VehicleId)
                .OnDelete(DeleteBehavior.Restrict);
 
+        // Même filtre que Vehicle (suppression logique) : sans lui, les requêtes qui chargent le
+        // véhicule (listes) excluaient ces interventions alors que les comptages les incluaient.
+        builder.HasQueryFilter(i => !i.Vehicle.IsDeleted);
+
         builder.HasOne(i => i.Store)
                .WithMany()
                .HasForeignKey(i => i.StoreId)
