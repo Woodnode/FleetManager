@@ -58,3 +58,8 @@ e2e/
 
 ## Node (root)
 node_modules/
+
+# Profils de publication Azure / Visual Studio : contiennent les identifiants de déploiement
+*.PublishSettings
+*.pubxml
+*.pubxml.user
