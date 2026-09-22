@@ -36,6 +36,48 @@ jobs:
           name: backend-test-results
           path: ./TestResults/*.trx
 
+  # ─── Migrations PostgreSQL ───────────────────────────────────────────────────
+  # Les tests tournent sur SQLite : ce job vérifie que les migrations s'appliquent
+  # réellement sur PostgreSQL et qu'aucun changement de modèle n'a été oublié.
+  migrations:
+    name: Migrations — PostgreSQL
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: fleetmanager
+          POSTGRES_USER: fleetmanager
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U fleetmanager -d fleetmanager"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      CONNECTION: "Host=localhost;Port=5432;Database=fleetmanager;Username=fleetmanager;Password=ci-only-password"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.x"
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef --version "8.*"
+
+      - name: No pending model changes
+        run: dotnet ef migrations has-pending-model-changes --project src/FleetManager.Infrastructure --startup-project src/FleetManager.Api
+
+      - name: Apply migrations
+        run: dotnet ef database update --project src/FleetManager.Infrastructure --startup-project src/FleetManager.Api --connection "$CONNECTION"
+
   # ─── Frontend ────────────────────────────────────────────────────────────────
   frontend:
     name: Frontend — lint, typecheck & test
