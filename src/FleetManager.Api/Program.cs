@@ -196,7 +196,7 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Erreur lors de la migration ou du seed. Vérifiez la connexion SQL Server.");
+        logger.LogError(ex, "Erreur lors de la migration ou du seed. Vérifiez la connexion PostgreSQL.");
     }
 }
 
