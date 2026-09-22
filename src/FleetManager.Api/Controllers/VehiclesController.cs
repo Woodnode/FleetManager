@@ -71,6 +71,18 @@ public class VehiclesController : ApiControllerBase
         return result.IsSuccess ? Ok(result.Value) : MapError(result.Error!);
     }
 
+    /// <summary>Restaure un véhicule archivé avec son historique. Admin : tous ; gérant : sa propre enseigne.</summary>
+    [HttpPost("archived/{id:guid}/restore")]
+    [Authorize(Roles = "Admin,StoreManager")]
+    [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Restore(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new RestoreVehicleCommand(id), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : MapError(result.Error!);
+    }
+
     /// <summary>Récupère les véhicules d'une enseigne. Non-Admin : enseigne propre uniquement.</summary>
     [HttpGet("store/{storeId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<VehicleDto>), StatusCodes.Status200OK)]

@@ -13,9 +13,12 @@ public interface IVehicleRepository
     Task AddAsync(Vehicle vehicle, CancellationToken cancellationToken = default);
     void Update(Vehicle vehicle);
     void Remove(Vehicle vehicle);
+    // Inclut les véhicules archivés : l'index unique sur le VIN les couvre aussi.
     Task<bool> ExistsByVinAsync(string vin, CancellationToken cancellationToken = default);
 
     // Archives : véhicules supprimés logiquement, exclus de toutes les autres méthodes par le filtre global.
     Task<(IReadOnlyList<Vehicle> Items, int TotalCount)> GetArchivedPagedAsync(Guid? storeId, int skip, int take, string? search = null, CancellationToken cancellationToken = default);
     Task<Vehicle?> GetArchivedByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<Vehicle?> GetArchivedByVinAsync(string vin, CancellationToken cancellationToken = default);
+    Task<bool> ExistsForStoreIncludingArchivedAsync(Guid storeId, CancellationToken cancellationToken = default);
 }

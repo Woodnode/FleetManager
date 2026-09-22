@@ -73,7 +73,8 @@ public class VehicleRepository : IVehicleRepository
         => _context.Vehicles.Remove(vehicle);
 
     public async Task<bool> ExistsByVinAsync(string vin, CancellationToken cancellationToken = default)
-        => await _context.Vehicles.AnyAsync(v => v.Vin.Value == vin.ToUpperInvariant(), cancellationToken);
+        => await _context.Vehicles.IgnoreQueryFilters()
+            .AnyAsync(v => v.Vin.Value == vin.ToUpperInvariant(), cancellationToken);
 
     // IgnoreQueryFilters lève le filtre de suppression logique ; IsDeleted est donc filtré explicitement.
     public async Task<(IReadOnlyList<Vehicle> Items, int TotalCount)> GetArchivedPagedAsync(
@@ -101,4 +102,12 @@ public class VehicleRepository : IVehicleRepository
         => await _context.Vehicles.IgnoreQueryFilters()
             .Include(v => v.Store)
             .FirstOrDefaultAsync(v => v.Id == id && v.IsDeleted, cancellationToken);
+
+    public async Task<Vehicle?> GetArchivedByVinAsync(string vin, CancellationToken cancellationToken = default)
+        => await _context.Vehicles.IgnoreQueryFilters()
+            .Include(v => v.Store)
+            .FirstOrDefaultAsync(v => v.Vin.Value == vin.ToUpperInvariant() && v.IsDeleted, cancellationToken);
+
+    public async Task<bool> ExistsForStoreIncludingArchivedAsync(Guid storeId, CancellationToken cancellationToken = default)
+        => await _context.Vehicles.IgnoreQueryFilters().AnyAsync(v => v.StoreId == storeId, cancellationToken);
 }

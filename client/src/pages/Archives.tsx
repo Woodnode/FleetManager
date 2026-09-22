@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Archive, History, Search, ShieldAlert } from 'lucide-react'
+import { Archive, ArchiveRestore, History, Search, ShieldAlert } from 'lucide-react'
 import { vehiclesApi } from '../api/vehicles'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
@@ -8,6 +8,7 @@ import { Skeleton, SkeletonTable } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
+import { useRestoreVehicle } from '../hooks/useRestoreVehicle'
 import { isManagerOrAdminRole } from '../utils/auth'
 import type { ArchivedVehicle } from '../types'
 
@@ -137,6 +138,8 @@ export default function Archives() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<ArchivedVehicle | null>(null)
+  const [toRestore, setToRestore] = useState<ArchivedVehicle | null>(null)
+  const restoreM = useRestoreVehicle(() => setToRestore(null))
 
   const { data: archivePage, isLoading, isError, refetch } = useQuery({
     queryKey: ['archived-vehicles', page, search],
@@ -221,7 +224,15 @@ export default function Archives() {
                   <td className="px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">{formatDate(v.deletedAt)}</td>
                   <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">{v.interventionCount}</td>
-                  <td className="px-5 py-3.5 text-right">
+                  <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                    <button
+                      onClick={() => setToRestore(v)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 rounded-lg text-xs font-semibold transition-colors hover:bg-indigo-50"
+                      style={{ color: 'var(--brand-600)', border: '1px solid rgba(76,110,245,0.3)' }}
+                      aria-label={`Restaurer ${v.brand} ${v.model} (${v.vin})`}
+                    >
+                      <ArchiveRestore size={13} />Restaurer
+                    </button>
                     <button
                       onClick={() => setSelected(v)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 bg-white transition-colors hover:border-slate-400 hover:text-slate-900"
@@ -247,6 +258,29 @@ export default function Archives() {
       )}
 
       <HistoryModal vehicle={selected} onClose={() => setSelected(null)} />
+
+      <Modal open={!!toRestore} onClose={() => setToRestore(null)} title="Restaurer le véhicule" size="sm">
+        {toRestore && (
+          <>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              <span className="font-semibold text-slate-900">{toRestore.brand} {toRestore.model}</span> retournera
+              dans le parc de <span className="font-medium">{toRestore.storeName}</span>, avec
+              {toRestore.interventionCount > 0
+                ? ` ses ${toRestore.interventionCount} intervention${toRestore.interventionCount > 1 ? 's' : ''} d’historique.`
+                : ' son statut d’avant la suppression.'}
+            </p>
+            <div className="flex justify-end gap-3 mt-6">
+              <button onClick={() => setToRestore(null)}
+                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+                Annuler
+              </button>
+              <button onClick={() => restoreM.mutate(toRestore.id)} disabled={restoreM.isPending} className="fm-btn-primary">
+                {restoreM.isPending ? 'Restauration...' : 'Restaurer'}
+              </button>
+            </div>
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

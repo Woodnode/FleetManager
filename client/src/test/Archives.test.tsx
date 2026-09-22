@@ -75,4 +75,18 @@ describe('Archives', () => {
 
     expect(await screen.findByText('Aucun véhicule archivé')).toBeInTheDocument()
   })
+
+  it('restaure un véhicule après confirmation', async () => {
+    vi.spyOn(vehiclesApi, 'getArchived').mockResolvedValue(page)
+    const restore = vi.spyOn(vehiclesApi, 'restore').mockResolvedValue({ ...archived, status: 'Available' } as never)
+
+    renderAs('StoreManager')
+    fireEvent.click(await screen.findByRole('button', { name: /restaurer Toyota Corolla/i }))
+
+    expect(screen.getByText(/ses 2 interventions d’historique/)).toBeInTheDocument()
+    expect(restore).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurer' }))
+
+    await waitFor(() => expect(restore).toHaveBeenCalledWith('v1'))
+  })
 })

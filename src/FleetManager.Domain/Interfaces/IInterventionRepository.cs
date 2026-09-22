@@ -19,6 +19,9 @@ public interface IInterventionRepository
     Task<bool> ExistsByVehicleIdAsync(Guid vehicleId, CancellationToken cancellationToken = default);
     Task<bool> HasActiveForVehicleAsync(Guid vehicleId, CancellationToken cancellationToken = default);
 
+    // Toutes les interventions rattachées à l'enseigne, y compris celles de véhicules archivés ou transférés.
+    Task<bool> ExistsForStoreIncludingArchivedAsync(Guid storeId, CancellationToken cancellationToken = default);
+
     // Historique des véhicules archivés : ces interventions sont masquées par le filtre global.
     Task<IReadOnlyList<Intervention>> GetArchivedVehicleHistoryAsync(Guid vehicleId, CancellationToken cancellationToken = default);
     Task<Dictionary<Guid, int>> CountByArchivedVehicleIdsAsync(IReadOnlyCollection<Guid> vehicleIds, CancellationToken cancellationToken = default);

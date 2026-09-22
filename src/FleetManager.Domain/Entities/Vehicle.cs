@@ -103,4 +103,15 @@ public class Vehicle : ISoftDeletable
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
     }
+
+    // Remet le véhicule dans le parc avec son statut et son enseigne d'origine : l'historique
+    // d'interventions, masqué pendant l'archivage, redevient visible.
+    public void Restore()
+    {
+        if (!IsDeleted)
+            throw new DomainException("Ce véhicule n'est pas archivé.");
+
+        IsDeleted = false;
+        DeletedAt = null;
+    }
 }

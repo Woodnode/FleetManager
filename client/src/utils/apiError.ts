@@ -12,3 +12,33 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
   }
   return fallback
 }
+
+/** Véhicule archivé qui porte déjà le VIN saisi (réponse 409 de la création d'un véhicule). */
+export interface ArchivedVinConflict {
+  archivedVehicleId: string
+  brand: string
+  model: string
+  year: number
+  storeName: string | null
+  deletedAt: string | null
+  message: string
+}
+
+/**
+ * Lit le conflit « VIN archivé » renvoyé par l'API. Les détails ne sont présents que si
+ * l'utilisateur peut restaurer ce véhicule ; sinon on retombe sur le message générique.
+ */
+export function getArchivedVinConflict(error: unknown): ArchivedVinConflict | null {
+  if (!isAxiosError(error) || error.response?.status !== 409) return null
+  const data = error.response.data as Partial<ArchivedVinConflict> & { detail?: string } | undefined
+  if (!data || typeof data.archivedVehicleId !== 'string') return null
+  return {
+    archivedVehicleId: data.archivedVehicleId,
+    brand: data.brand ?? '',
+    model: data.model ?? '',
+    year: data.year ?? 0,
+    storeName: data.storeName ?? null,
+    deletedAt: data.deletedAt ?? null,
+    message: data.detail ?? '',
+  }
+}

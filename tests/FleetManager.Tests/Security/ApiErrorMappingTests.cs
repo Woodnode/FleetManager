@@ -43,4 +43,25 @@ public class ApiErrorMappingTests
         problem.Status.Should().Be(expectedStatus);
         problem.Detail.Should().Be("Message métier");
     }
+
+    [Fact]
+    public void MapError_AvecDetails_LesAjouteAuxExtensions()
+    {
+        var id = Guid.NewGuid();
+        var error = Error.Conflict("VIN archivé", new Dictionary<string, object?> { ["archivedVehicleId"] = id });
+
+        var problem = (ProblemDetails)((ObjectResult)CreateController().Map(error)).Value!;
+
+        problem.Extensions.Should().ContainKey("archivedVehicleId").WhoseValue.Should().Be(id);
+    }
+
+    [Fact]
+    public void MapError_Forbidden_NeDivulgueJamaisLesDetails()
+    {
+        var error = new Error("FORBIDDEN", "Refusé", new Dictionary<string, object?> { ["storeName"] = "Lyon" });
+
+        var problem = (ProblemDetails)((ObjectResult)CreateController().Map(error)).Value!;
+
+        problem.Extensions.Should().NotContainKey("storeName");
+    }
 }
