@@ -159,7 +159,7 @@ public class VehicleCommandAuthorizationTests
         var vehicleStoreB = BuildVehicle(StoreB);
         _vehicleRepoMock.Setup(r => r.GetByIdAsync(vehicleStoreB.Id, default)).ReturnsAsync(vehicleStoreB);
 
-        var handler = new DeleteVehicleCommandHandler(_vehicleRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
+        var handler = new DeleteVehicleCommandHandler(_vehicleRepoMock.Object, new Mock<IInterventionRepository>().Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
         var command = new DeleteVehicleCommand(vehicleStoreB.Id);
 
         //Quand
@@ -181,7 +181,7 @@ public class VehicleCommandAuthorizationTests
         _vehicleRepoMock.Setup(r => r.Update(vehicleStoreB));
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
 
-        var handler = new DeleteVehicleCommandHandler(_vehicleRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
+        var handler = new DeleteVehicleCommandHandler(_vehicleRepoMock.Object, new Mock<IInterventionRepository>().Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
         var command = new DeleteVehicleCommand(vehicleStoreB.Id);
 
         //Quand

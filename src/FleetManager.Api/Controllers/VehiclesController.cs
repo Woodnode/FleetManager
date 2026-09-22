@@ -44,6 +44,33 @@ public class VehiclesController : ApiControllerBase
             : MapError(result.Error!);
     }
 
+    /// <summary>Archives : véhicules supprimés, paginés. Admin : toutes les enseignes ; gérant : la sienne.</summary>
+    [HttpGet("archived")]
+    [Authorize(Roles = "Admin,StoreManager")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetArchived(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetArchivedVehiclesQuery(page, pageSize, search), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : MapError(result.Error!);
+    }
+
+    /// <summary>Historique complet d'un véhicule archivé (interventions comprises).</summary>
+    [HttpGet("archived/{id:guid}")]
+    [Authorize(Roles = "Admin,StoreManager")]
+    [ProducesResponseType(typeof(ArchivedVehicleHistoryDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetArchivedHistory(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetArchivedVehicleHistoryQuery(id), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : MapError(result.Error!);
+    }
+
     /// <summary>Récupère les véhicules d'une enseigne. Non-Admin : enseigne propre uniquement.</summary>
     [HttpGet("store/{storeId:guid}")]
     [ProducesResponseType(typeof(IReadOnlyList<VehicleDto>), StatusCodes.Status200OK)]

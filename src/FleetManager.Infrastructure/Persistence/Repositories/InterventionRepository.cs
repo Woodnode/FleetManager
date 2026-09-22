@@ -92,6 +92,12 @@ public class InterventionRepository : IInterventionRepository
     public async Task<bool> ExistsByVehicleIdAsync(Guid vehicleId, CancellationToken cancellationToken = default)
         => await _context.Interventions.AnyAsync(i => i.VehicleId == vehicleId, cancellationToken);
 
+    public async Task<bool> HasActiveForVehicleAsync(Guid vehicleId, CancellationToken cancellationToken = default)
+        => await _context.Interventions.AnyAsync(
+            i => i.VehicleId == vehicleId &&
+                 (i.Status == InterventionStatus.Planned || i.Status == InterventionStatus.InProgress),
+            cancellationToken);
+
     public async Task AddAsync(Intervention intervention, CancellationToken cancellationToken = default)
         => await _context.Interventions.AddAsync(intervention, cancellationToken);
 
@@ -100,4 +106,28 @@ public class InterventionRepository : IInterventionRepository
 
     public void Remove(Intervention intervention)
         => _context.Interventions.Remove(intervention);
+
+    // Le filtre global masque les interventions des véhicules supprimés : les archives le lèvent.
+    public async Task<IReadOnlyList<Intervention>> GetArchivedVehicleHistoryAsync(Guid vehicleId, CancellationToken cancellationToken = default)
+        => await _context.Interventions.IgnoreQueryFilters()
+            .Include(i => i.Vehicle)
+            .Include(i => i.Store)
+            .Include(i => i.Technician)
+            .Where(i => i.VehicleId == vehicleId)
+            .OrderByDescending(i => i.PlannedStartDate)
+            .ThenBy(i => i.Id)
+            .ToListAsync(cancellationToken);
+
+    public async Task<Dictionary<Guid, int>> CountByArchivedVehicleIdsAsync(
+        IReadOnlyCollection<Guid> vehicleIds, CancellationToken cancellationToken = default)
+    {
+        if (vehicleIds.Count == 0)
+            return new Dictionary<Guid, int>();
+
+        return await _context.Interventions.IgnoreQueryFilters()
+            .Where(i => vehicleIds.Contains(i.VehicleId))
+            .GroupBy(i => i.VehicleId)
+            .Select(g => new { VehicleId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.VehicleId, x => x.Count, cancellationToken);
+    }
 }

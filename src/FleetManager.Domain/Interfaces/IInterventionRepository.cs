@@ -17,6 +17,11 @@ public interface IInterventionRepository
     Task<IReadOnlyList<Intervention>> GetRecentAsync(Guid? storeId, int count, CancellationToken cancellationToken = default);
     Task<InterventionSummaryCounts> GetSummaryCountsAsync(Guid? storeId, CancellationToken cancellationToken = default);
     Task<bool> ExistsByVehicleIdAsync(Guid vehicleId, CancellationToken cancellationToken = default);
+    Task<bool> HasActiveForVehicleAsync(Guid vehicleId, CancellationToken cancellationToken = default);
+
+    // Historique des véhicules archivés : ces interventions sont masquées par le filtre global.
+    Task<IReadOnlyList<Intervention>> GetArchivedVehicleHistoryAsync(Guid vehicleId, CancellationToken cancellationToken = default);
+    Task<Dictionary<Guid, int>> CountByArchivedVehicleIdsAsync(IReadOnlyCollection<Guid> vehicleIds, CancellationToken cancellationToken = default);
     Task AddAsync(Intervention intervention, CancellationToken cancellationToken = default);
     void Update(Intervention intervention);
     void Remove(Intervention intervention);

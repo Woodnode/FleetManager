@@ -1,5 +1,5 @@
 import apiClient from './client'
-import type { Vehicle, PagedResponse, CreateVehicleRequest, UpdateVehicleRequest } from '../types'
+import type { Vehicle, PagedResponse, CreateVehicleRequest, UpdateVehicleRequest, ArchivedVehicle, ArchivedVehicleHistory } from '../types'
 
 export const vehiclesApi = {
   getAll: (page = 1, pageSize = 20, search?: string, status?: string) =>
@@ -17,4 +17,10 @@ export const vehiclesApi = {
   update: (id: string, data: UpdateVehicleRequest) => apiClient.put<Vehicle>(`/vehicles/${id}`, data).then(r => r.data),
   changeStatus: (id: string, status: string) => apiClient.patch(`/vehicles/${id}/status`, { newStatus: status }).then(r => r.data),
   delete: (id: string) => apiClient.delete(`/vehicles/${id}`),
+  getArchived: (page = 1, pageSize = 20, search?: string) =>
+    apiClient.get<PagedResponse<ArchivedVehicle>>('/vehicles/archived', {
+      params: { page, pageSize, ...(search ? { search } : {}) },
+    }).then(r => r.data),
+  getArchivedHistory: (id: string) =>
+    apiClient.get<ArchivedVehicleHistory>(`/vehicles/archived/${id}`).then(r => r.data),
 }
