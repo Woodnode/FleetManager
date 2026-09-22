@@ -14,12 +14,14 @@ public class DeleteStoreCommandTests
 
     private readonly Mock<IStoreRepository>   _storeRepo   = new();
     private readonly Mock<IVehicleRepository> _vehicleRepo = new();
+    private readonly Mock<IInterventionRepository> _interventionRepo = new();
     private readonly Mock<IUnitOfWork>        _unitOfWork  = new();
     private readonly Mock<ICurrentUserService> _currentUser = new();
 
     private DeleteStoreCommandHandler CreateHandler() => new(
         _storeRepo.Object,
         _vehicleRepo.Object,
+        _interventionRepo.Object,
         _unitOfWork.Object,
         _currentUser.Object);
 

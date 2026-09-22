@@ -23,4 +23,6 @@ export const vehiclesApi = {
     }).then(r => r.data),
   getArchivedHistory: (id: string) =>
     apiClient.get<ArchivedVehicleHistory>(`/vehicles/archived/${id}`).then(r => r.data),
+  restore: (id: string) =>
+    apiClient.post<Vehicle>(`/vehicles/archived/${id}/restore`).then(r => r.data),
 }

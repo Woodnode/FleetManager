@@ -43,8 +43,27 @@ public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand,
         if (!_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, request.StoreId))
             return Result.Failure<VehicleDto>(Error.Forbidden("Vous ne pouvez pas créer un véhicule pour une autre enseigne."));
 
+        // Un véhicule archivé conserve son VIN (index unique) : on propose de le restaurer plutôt
+        // que de laisser la base rejeter l'insertion. Ses détails ne sont donnés qu'à qui peut le voir.
+        var archived = await _vehicleRepository.GetArchivedByVinAsync(request.Vin, cancellationToken);
+        if (archived is not null)
+            return Result.Failure<VehicleDto>(
+                _authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, archived.StoreId)
+                    ? Error.Conflict(
+                        $"Le VIN '{archived.Vin.Value}' appartient à un véhicule archivé. Restaurez-le pour le remettre dans le parc avec son historique.",
+                        new Dictionary<string, object?>
+                        {
+                            ["archivedVehicleId"] = archived.Id,
+                            ["brand"]             = archived.Brand,
+                            ["model"]             = archived.Model,
+                            ["year"]              = archived.Year,
+                            ["storeName"]         = archived.Store?.Name,
+                            ["deletedAt"]         = archived.DeletedAt,
+                        })
+                    : Error.Conflict("Ce VIN appartient à un véhicule archivé d'une autre enseigne. Contactez un administrateur."));
+
         if (await _vehicleRepository.ExistsByVinAsync(request.Vin, cancellationToken))
-            return Result.Failure<VehicleDto>(Error.Conflict($"A vehicle with VIN '{request.Vin}' already exists."));
+            return Result.Failure<VehicleDto>(Error.Conflict($"Un véhicule avec le VIN '{request.Vin.ToUpperInvariant()}' existe déjà dans le parc."));
 
         if (!await _storeRepository.ExistsAsync(request.StoreId, cancellationToken))
             return Result.Failure<VehicleDto>(Error.NotFound($"Store '{request.StoreId}' not found."));

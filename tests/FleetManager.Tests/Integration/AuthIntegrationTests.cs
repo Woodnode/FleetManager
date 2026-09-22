@@ -73,4 +73,11 @@ public class AuthIntegrationTests : IClassFixture<FleetManagerWebAppFactory>
         var response = await _client.GetAsync(url);
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task RestaurerVehicule_SansCookie_Retourne401()
+    {
+        var response = await _client.PostAsync($"/api/v1/vehicles/archived/{Guid.NewGuid()}/restore", null);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

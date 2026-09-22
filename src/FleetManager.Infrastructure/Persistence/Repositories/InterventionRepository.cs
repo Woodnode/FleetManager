@@ -98,6 +98,9 @@ public class InterventionRepository : IInterventionRepository
                  (i.Status == InterventionStatus.Planned || i.Status == InterventionStatus.InProgress),
             cancellationToken);
 
+    public async Task<bool> ExistsForStoreIncludingArchivedAsync(Guid storeId, CancellationToken cancellationToken = default)
+        => await _context.Interventions.IgnoreQueryFilters().AnyAsync(i => i.StoreId == storeId, cancellationToken);
+
     public async Task AddAsync(Intervention intervention, CancellationToken cancellationToken = default)
         => await _context.Interventions.AddAsync(intervention, cancellationToken);
 

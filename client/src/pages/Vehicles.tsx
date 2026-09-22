@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Pencil, Trash2, RefreshCw, Search, LayoutList, LayoutGrid, Car } from 'lucide-react'
+import { Plus, Pencil, Trash2, RefreshCw, Search, LayoutList, LayoutGrid, Car, ArchiveRestore } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { vehiclesApi } from '../api/vehicles'
 import { storesApi } from '../api/stores'
@@ -12,7 +12,8 @@ import { SkeletonTable } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
-import { getApiErrorMessage } from '../utils/apiError'
+import { getApiErrorMessage, getArchivedVinConflict, type ArchivedVinConflict } from '../utils/apiError'
+import { useRestoreVehicle } from '../hooks/useRestoreVehicle'
 import { createVehicleSchema, updateVehicleSchema, type CreateVehicleFormValues, type UpdateVehicleFormValues } from '../schemas/vehicle'
 import type { Vehicle, VehicleStatus, CreateVehicleRequest, UpdateVehicleRequest, Store } from '../types'
 
@@ -141,9 +142,40 @@ interface CreateVehicleFormProps {
   onSubmit: (d: CreateVehicleRequest) => void
   pending: boolean
   onCancel: () => void
+  /** VIN déjà porté par un véhicule archivé que l'utilisateur peut restaurer. */
+  archivedConflict: ArchivedVinConflict | null
+  onRestore: (id: string) => void
+  restoring: boolean
 }
 
-function CreateVehicleForm({ stores, onSubmit, pending, onCancel }: CreateVehicleFormProps) {
+function ArchivedVinAlert({ conflict, onRestore, restoring }: {
+  conflict: ArchivedVinConflict
+  onRestore: (id: string) => void
+  restoring: boolean
+}) {
+  const deletedOn = conflict.deletedAt
+    ? new Date(conflict.deletedAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null
+  return (
+    <div role="alert" className="rounded-xl p-4 flex items-start gap-3"
+      style={{ background: 'rgba(76,110,245,0.06)', border: '1px solid rgba(76,110,245,0.22)' }}>
+      <ArchiveRestore size={18} className="shrink-0 mt-0.5" style={{ color: 'var(--brand-500)' }} />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-slate-900">Ce VIN appartient à un véhicule archivé</p>
+        <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+          {conflict.brand} {conflict.model} ({conflict.year}){conflict.storeName && `, ${conflict.storeName}`}
+          {deletedOn && `, supprimé le ${deletedOn}`}. Restaurez-le pour le remettre dans le parc avec son historique.
+        </p>
+        <button type="button" onClick={() => onRestore(conflict.archivedVehicleId)} disabled={restoring}
+          className="fm-btn-primary mt-3" style={{ padding: '7px 14px', fontSize: '0.8rem' }}>
+          {restoring ? 'Restauration...' : 'Restaurer ce véhicule'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CreateVehicleForm({ stores, onSubmit, pending, onCancel, archivedConflict, onRestore, restoring }: CreateVehicleFormProps) {
   const { register, handleSubmit, formState: { errors } } = useForm<CreateVehicleFormValues>({
     resolver: zodResolver(createVehicleSchema),
     defaultValues: { vin: '', brand: '', model: '', year: new Date().getFullYear(), mileage: 0, storeId: '' },
@@ -195,6 +227,7 @@ function CreateVehicleForm({ stores, onSubmit, pending, onCancel }: CreateVehicl
         </select>
         <FieldError msg={errors.storeId?.message} />
       </div>
+      {archivedConflict && <ArchivedVinAlert conflict={archivedConflict} onRestore={onRestore} restoring={restoring} />}
       <div className="flex justify-end gap-3 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
         <button type="button" onClick={onCancel}
           className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
@@ -284,6 +317,7 @@ export default function Vehicles() {
   const [statusVehicle, setStatusVehicle] = useState<Vehicle | null>(null)
   const [deleteVehicle, setDeleteVehicle] = useState<Vehicle | null>(null)
   const [newStatus, setNewStatus]       = useState<VehicleStatus>('Available')
+  const [archivedConflict, setArchivedConflict] = useState<ArchivedVinConflict | null>(null)
 
   const { data: vehiclesPage, isLoading } = useQuery({
     queryKey: ['vehicles', page, search, statusFilter],
@@ -298,9 +332,18 @@ export default function Vehicles() {
 
   const createM = useMutation({
     mutationFn: (d: CreateVehicleRequest) => vehiclesApi.create(d),
+    onMutate:  () => setArchivedConflict(null),
     onSuccess: () => { invalidate(); setAddOpen(false); toast.success('Véhicule ajouté') },
-    onError:   () => toast.error("Erreur lors de l'ajout"),
+    // VIN d'un véhicule archivé restaurable : proposition inline dans le formulaire plutôt qu'un toast.
+    onError:   (err) => {
+      const conflict = getArchivedVinConflict(err)
+      if (conflict) setArchivedConflict(conflict)
+      else toast.error(getApiErrorMessage(err, "Erreur lors de l'ajout"))
+    },
   })
+
+  const closeAdd = () => { setAddOpen(false); setArchivedConflict(null) }
+  const restoreM = useRestoreVehicle(closeAdd)
 
   const updateM = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateVehicleRequest }) => vehiclesApi.update(id, data),
@@ -511,13 +554,16 @@ export default function Vehicles() {
 
       {/* ── Modals ── */}
 
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="Ajouter un véhicule" size="md">
+      <Modal open={addOpen} onClose={closeAdd} title="Ajouter un véhicule" size="md">
         <CreateVehicleForm
           key={addOpen ? 'open' : 'closed'}
           stores={stores}
           onSubmit={d => createM.mutate(d)}
           pending={createM.isPending}
-          onCancel={() => setAddOpen(false)}
+          onCancel={closeAdd}
+          archivedConflict={archivedConflict}
+          onRestore={id => restoreM.mutate(id)}
+          restoring={restoreM.isPending}
         />
       </Modal>
 
