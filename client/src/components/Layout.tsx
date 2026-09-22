@@ -6,6 +6,7 @@ import LogoIcon from './ui/LogoIcon'
 import { isManagerOrAdminRole } from '../utils/auth'
 import { useMediaQuery } from '../hooks/useMediaQuery'
 import { useScrollLock } from '../hooks/useScrollLock'
+import { RealtimeProvider } from '../realtime/RealtimeContext'
 
 const nav = [
   { to: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
@@ -152,7 +153,10 @@ export default function Layout() {
 
       {/* ── Main content ── */}
       <main className="flex-1 min-w-0">
-        <Outlet />
+        {/* Temps réel ouvert seulement dans la zone connectée, fermé à la déconnexion (démontage). */}
+        <RealtimeProvider>
+          <Outlet />
+        </RealtimeProvider>
       </main>
     </div>
   )

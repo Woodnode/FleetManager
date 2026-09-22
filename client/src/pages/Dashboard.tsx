@@ -8,6 +8,7 @@ import { dashboardApi } from '../api/dashboard'
 import Badge from '../components/ui/Badge'
 import { SkeletonKpi } from '../components/ui/Skeleton'
 import { useIsMobile } from '../hooks/useMediaQuery'
+import RealtimeBadge from '../realtime/RealtimeBadge'
 
 // ── Colors / labels ────────────────────────────────────────────────────────────
 
@@ -205,13 +206,7 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Dashboard</h1>
           <p className="text-sm text-slate-500 mt-0.5">Vue d'ensemble du parc auto</p>
         </div>
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
-          style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}
-        >
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-medium text-emerald-700">Données en direct</span>
-        </div>
+        <RealtimeBadge />
       </div>
 
       {/* KPIs */}

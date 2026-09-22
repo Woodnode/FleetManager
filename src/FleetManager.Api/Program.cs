@@ -1,3 +1,4 @@
+using FleetManager.Api.Realtime;
 using Asp.Versioning;
 using Asp.Versioning.ApiExplorer;
 using FleetManager.Api.Infrastructure;
@@ -97,6 +98,10 @@ builder.Services.ConfigureOptions<ConfigureSwaggerOptions>();
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Temps réel : remplace le notificateur vide de l'infrastructure.
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
 // JWT Authentication
 var jwtSecret = JwtSecretValidator.Validate(
@@ -226,6 +231,9 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+// Sous /api pour qu'un seul relais (Caddy) couvre l'API et le temps réel. La connexion est
+// fermée à l'expiration du jeton : le client se reconnecte avec un jeton rafraîchi.
+app.MapHub<FleetHub>("/api/v1/hubs/fleet", o => o.CloseOnAuthenticationExpiration = true);
 app.MapHealthChecks("/health");
 
 app.Run();

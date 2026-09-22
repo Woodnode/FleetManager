@@ -80,4 +80,12 @@ public class AuthIntegrationTests : IClassFixture<FleetManagerWebAppFactory>
         var response = await _client.PostAsync($"/api/v1/vehicles/archived/{Guid.NewGuid()}/restore", null);
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task TempsReel_SansCookie_Retourne401()
+    {
+        // La négociation SignalR est la porte d'entrée du hub : sans session, aucune connexion.
+        var response = await _client.PostAsync("/api/v1/hubs/fleet/negotiate?negotiateVersion=1", null);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }
