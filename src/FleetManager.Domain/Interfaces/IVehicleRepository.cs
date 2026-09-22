@@ -14,4 +14,8 @@ public interface IVehicleRepository
     void Update(Vehicle vehicle);
     void Remove(Vehicle vehicle);
     Task<bool> ExistsByVinAsync(string vin, CancellationToken cancellationToken = default);
+
+    // Archives : véhicules supprimés logiquement, exclus de toutes les autres méthodes par le filtre global.
+    Task<(IReadOnlyList<Vehicle> Items, int TotalCount)> GetArchivedPagedAsync(Guid? storeId, int skip, int take, string? search = null, CancellationToken cancellationToken = default);
+    Task<Vehicle?> GetArchivedByIdAsync(Guid id, CancellationToken cancellationToken = default);
 }

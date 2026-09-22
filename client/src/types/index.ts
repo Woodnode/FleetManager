@@ -26,6 +26,25 @@ export interface Vehicle {
   storeName: string
 }
 
+// Véhicule supprimé (suppression logique), consultable dans les archives
+export interface ArchivedVehicle {
+  id: string
+  vin: string
+  brand: string
+  model: string
+  year: number
+  mileage: number
+  storeId: string
+  storeName: string
+  deletedAt: string | null
+  interventionCount: number
+}
+
+export interface ArchivedVehicleHistory {
+  vehicle: ArchivedVehicle
+  interventions: Intervention[]
+}
+
 export interface Intervention {
   id: string
   vehicleId: string

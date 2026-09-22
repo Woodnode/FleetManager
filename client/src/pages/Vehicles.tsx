@@ -12,6 +12,7 @@ import { SkeletonTable } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
+import { getApiErrorMessage } from '../utils/apiError'
 import { createVehicleSchema, updateVehicleSchema, type CreateVehicleFormValues, type UpdateVehicleFormValues } from '../schemas/vehicle'
 import type { Vehicle, VehicleStatus, CreateVehicleRequest, UpdateVehicleRequest, Store } from '../types'
 
@@ -315,8 +316,14 @@ export default function Vehicles() {
 
   const deleteM = useMutation({
     mutationFn: (id: string) => vehiclesApi.delete(id),
-    onSuccess: () => { invalidate(); setDeleteVehicle(null); toast.success('Véhicule supprimé') },
-    onError:   () => toast.error('Erreur lors de la suppression'),
+    onSuccess: () => {
+      invalidate()
+      qc.invalidateQueries({ queryKey: ['archived-vehicles'] })
+      setDeleteVehicle(null)
+      toast.success('Véhicule supprimé et placé dans les archives')
+    },
+    // L'API explique le refus (ex. véhicule en intervention) : on affiche son message.
+    onError:   (err) => toast.error(getApiErrorMessage(err, 'Erreur lors de la suppression')),
   })
 
   const handleSearchChange = (value: string) => { setSearch(value); setPage(1) }
@@ -565,7 +572,9 @@ export default function Vehicles() {
           <span className="font-semibold text-slate-900">{deleteVehicle?.brand} {deleteVehicle?.model}</span>{' '}
           <span className="font-mono text-xs text-slate-400">({deleteVehicle?.vin})</span>.
         </p>
-        <p className="text-xs text-red-500 mt-2">Cette action est irréversible.</p>
+        <p className="text-xs text-slate-500 mt-2">
+          Le véhicule sera retiré du parc et placé dans les archives, avec son historique d’interventions.
+        </p>
         <div className="flex justify-end gap-3 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
           <button onClick={() => setDeleteVehicle(null)}
             className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">

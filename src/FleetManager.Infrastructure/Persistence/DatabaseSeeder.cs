@@ -135,6 +135,8 @@ public class DatabaseSeeder
             InterventionType.Inspection,
             now.AddDays(3), now.AddDays(4),
             "Contrôle technique préparatoire");
+        // Comme CreateInterventionCommand : une intervention planifiée immobilise le véhicule.
+        parisVehicles[2].ChangeStatus(VehicleStatus.InIntervention);
         interventions.Add(i3);
 
         // --- Lyon : terminée ---
@@ -154,6 +156,7 @@ public class DatabaseSeeder
             InterventionType.Repair,
             now.AddDays(5), now.AddDays(7),
             "Diagnostic batterie haute tension");
+        lyonVehicles[1].ChangeStatus(VehicleStatus.InIntervention);
         interventions.Add(i5);
 
         // --- Bordeaux : planifiée ---
@@ -162,6 +165,7 @@ public class DatabaseSeeder
             InterventionType.Maintenance,
             now.AddDays(1), now.AddDays(2),
             "Révision annuelle");
+        bordeauxVehicles[0].ChangeStatus(VehicleStatus.InIntervention);
         interventions.Add(i6);
 
         return interventions;

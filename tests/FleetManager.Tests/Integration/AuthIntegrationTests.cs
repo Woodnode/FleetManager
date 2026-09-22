@@ -67,6 +67,7 @@ public class AuthIntegrationTests : IClassFixture<FleetManagerWebAppFactory>
     [Theory]
     [InlineData("/api/v1/interventions")]
     [InlineData("/api/v1/stores")]
+    [InlineData("/api/v1/vehicles/archived")]
     public async Task EndpointProtege_SansCookie_Retourne401(string url)
     {
         var response = await _client.GetAsync(url);

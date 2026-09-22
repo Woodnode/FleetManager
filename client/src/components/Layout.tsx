@@ -1,13 +1,16 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Car, Wrench, Building2, LogOut } from 'lucide-react'
+import { LayoutDashboard, Car, Wrench, Building2, Archive, LogOut } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import LogoIcon from './ui/LogoIcon'
+import { isManagerOrAdminRole } from '../utils/auth'
 
 const nav = [
   { to: '/dashboard',     label: 'Dashboard',     icon: LayoutDashboard },
   { to: '/vehicles',      label: 'Véhicules',      icon: Car },
   { to: '/interventions', label: 'Interventions',  icon: Wrench },
   { to: '/stores',        label: 'Enseignes',      icon: Building2 },
+  // Archives : réservées aux rôles qui peuvent supprimer un véhicule (l'API applique la même règle)
+  { to: '/archives',      label: 'Archives',       icon: Archive, managerOnly: true },
 ]
 
 export default function Layout() {
@@ -45,7 +48,7 @@ export default function Layout() {
 
         {/* Navigation */}
         <nav aria-label="Navigation principale" className="flex-1 px-3 py-4 space-y-0.5">
-          {nav.map(({ to, label, icon: Icon }) => (
+          {nav.filter(item => !item.managerOnly || isManagerOrAdminRole(user?.role)).map(({ to, label, icon: Icon }) => (
             <NavLink
               key={to}
               to={to}

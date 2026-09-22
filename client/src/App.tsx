@@ -12,6 +12,7 @@ const Dashboard     = lazy(() => import('./pages/Dashboard'))
 const Vehicles      = lazy(() => import('./pages/Vehicles'))
 const Interventions = lazy(() => import('./pages/Interventions'))
 const Stores        = lazy(() => import('./pages/Stores'))
+const Archives      = lazy(() => import('./pages/Archives'))
 
 function PageLoader() {
   return (
@@ -60,6 +61,7 @@ export default function App() {
                   <Route path="/vehicles"      element={<Vehicles />} />
                   <Route path="/interventions" element={<Interventions />} />
                   <Route path="/stores"        element={<Stores />} />
+                  <Route path="/archives"      element={<Archives />} />
                 </Route>
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
