@@ -9,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
 import { useRestoreVehicle } from '../hooks/useRestoreVehicle'
+import { useIsMobile } from '../hooks/useMediaQuery'
 import { isManagerOrAdminRole } from '../utils/auth'
 import type { ArchivedVehicle } from '../types'
 
@@ -104,7 +105,7 @@ function HistoryModal({ vehicle, onClose }: { vehicle: ArchivedVehicle | null; o
       )}
 
       {data && data.interventions.length > 0 && (
-        <ol className="space-y-2.5 max-h-[55vh] overflow-y-auto pr-1" aria-label="Interventions du véhicule">
+        <ol className="space-y-2.5" aria-label="Interventions du véhicule">
           {data.interventions.map(i => (
             <li key={i.id} className="rounded-xl p-4" style={{ border: '1px solid var(--border-light)' }}>
               <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -140,6 +141,7 @@ export default function Archives() {
   const [selected, setSelected] = useState<ArchivedVehicle | null>(null)
   const [toRestore, setToRestore] = useState<ArchivedVehicle | null>(null)
   const restoreM = useRestoreVehicle(() => setToRestore(null))
+  const isMobile = useIsMobile()
 
   const { data: archivePage, isLoading, isError, refetch } = useQuery({
     queryKey: ['archived-vehicles', page, search],
@@ -152,7 +154,7 @@ export default function Archives() {
 
   if (!allowed) {
     return (
-      <div className="p-8 fm-page">
+      <div className="fm-page">
         <PageHeader title="Archives" />
         <div className="fm-card flex flex-col items-center justify-center py-16 gap-2 text-center">
           <ShieldAlert size={24} className="text-slate-300" />
@@ -163,24 +165,22 @@ export default function Archives() {
   }
 
   return (
-    <div className="p-8 fm-page">
+    <div className="fm-page">
       <PageHeader
         title="Archives"
         subtitle={`${archivedLabel(total)}. Historique conservé pour les rapports.`}
       />
 
-      <div className="flex items-center gap-2 flex-wrap mb-5">
-        <div className="flex-1 min-w-[8px]" />
-        <div className="relative">
+      <div className="flex items-center gap-2 mb-5 sm:justify-end">
+        <div className="relative w-full sm:w-auto">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           <input
-            type="text"
+            type="search"
             placeholder="VIN, marque, modèle..."
             aria-label="Rechercher dans les archives"
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1) }}
-            className="fm-input pl-9"
-            style={{ width: 210 }}
+            className="fm-input pl-9 sm:w-[240px]"
           />
         </div>
       </div>
@@ -192,18 +192,54 @@ export default function Archives() {
           <p className="text-sm text-slate-500">Impossible de charger les archives.</p>
           <button onClick={() => refetch()} className="fm-btn-primary">Réessayer</button>
         </div>
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {vehicles.length === 0 ? (
+            <div className="fm-card"><EmptyState search={search} onReset={() => { setSearch(''); setPage(1) }} /></div>
+          ) : vehicles.map(v => (
+            <article key={v.id} className="fm-card p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{v.brand} {v.model}</p>
+                  <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">{v.vin}</p>
+                </div>
+                <span className="text-xs text-slate-400 shrink-0 mt-0.5">{formatDate(v.deletedAt)}</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-2.5">
+                {v.storeName} · {v.year} · {v.mileage.toLocaleString('fr-FR')} km · {v.interventionCount} intervention{v.interventionCount > 1 ? 's' : ''}
+              </p>
+              <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+                <button onClick={() => setToRestore(v)} className="fm-btn-ghost flex-1 text-indigo-600 bg-indigo-50/60"
+                  aria-label={`Restaurer ${v.brand} ${v.model} (${v.vin})`}>
+                  <ArchiveRestore size={14} />Restaurer
+                </button>
+                <button onClick={() => setSelected(v)} className="fm-btn-ghost flex-1 bg-slate-50"
+                  aria-label={`Voir l’historique de ${v.brand} ${v.model} (${v.vin})`}>
+                  <History size={14} />Historique
+                </button>
+              </div>
+            </article>
+          ))}
+          {archivePage && archivePage.totalPages > 1 && (
+            <div className="fm-card overflow-hidden">
+              <Pagination page={archivePage.page} totalPages={archivePage.totalPages} totalCount={archivePage.totalCount}
+                pageSize={archivePage.pageSize} onPageChange={p => setPage(p)} />
+            </div>
+          )}
+        </div>
       ) : (
         <div className="fm-card overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-light)' }}>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">VIN</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Marque / Modèle</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Année</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Kilométrage</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Enseigne</th>
+                <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Année</th>
+                <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Kilométrage</th>
+                <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Enseigne</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Supprimé le</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Interventions</th>
+                <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Interventions</th>
                 <th scope="col" className="px-5 py-3.5 text-right fm-th"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
@@ -217,17 +253,21 @@ export default function Archives() {
               ) : vehicles.map(v => (
                 <tr key={v.id} className="transition-colors hover:bg-slate-50/80"
                   style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td className="px-5 py-3.5 font-mono text-xs text-slate-500 tracking-wide">{v.vin}</td>
-                  <td className="px-5 py-3.5 text-sm font-medium text-slate-900">{v.brand} {v.model}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500">{v.year}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">{v.mileage.toLocaleString('fr-FR')} km</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">{formatDate(v.deletedAt)}</td>
-                  <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">{v.interventionCount}</td>
+                  <td className="px-5 py-3.5 font-mono text-xs text-slate-500 tracking-wide whitespace-nowrap">{v.vin}</td>
+                  <td className="px-5 py-3.5">
+                    <p className="text-sm font-medium text-slate-900">{v.brand} {v.model}</p>
+                    <p className="xl:hidden text-xs text-slate-400">{v.storeName}</p>
+                    <p className="xl:hidden text-xs text-slate-400 tabular-nums">{v.year} · {v.mileage.toLocaleString('fr-FR')} km · {v.interventionCount} interv.</p>
+                  </td>
+                  <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500">{v.year}</td>
+                  <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500 tabular-nums">{v.mileage.toLocaleString('fr-FR')} km</td>
+                  <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
+                  <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums whitespace-nowrap">{formatDate(v.deletedAt)}</td>
+                  <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500 tabular-nums">{v.interventionCount}</td>
                   <td className="px-5 py-3.5 text-right whitespace-nowrap">
                     <button
                       onClick={() => setToRestore(v)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 mr-2 rounded-lg text-xs font-semibold transition-colors hover:bg-indigo-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 pointer-coarse:py-2.5 mr-2 rounded-lg text-xs font-semibold transition-colors hover:bg-indigo-50"
                       style={{ color: 'var(--brand-600)', border: '1px solid rgba(76,110,245,0.3)' }}
                       aria-label={`Restaurer ${v.brand} ${v.model} (${v.vin})`}
                     >
@@ -235,7 +275,7 @@ export default function Archives() {
                     </button>
                     <button
                       onClick={() => setSelected(v)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 bg-white transition-colors hover:border-slate-400 hover:text-slate-900"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 pointer-coarse:py-2.5 rounded-lg text-xs font-semibold text-slate-600 border border-slate-200 bg-white transition-colors hover:border-slate-400 hover:text-slate-900"
                       aria-label={`Voir l’historique de ${v.brand} ${v.model} (${v.vin})`}
                     >
                       <History size={13} />Historique
@@ -245,6 +285,7 @@ export default function Archives() {
               ))}
             </tbody>
           </table>
+          </div>
           {archivePage && archivePage.totalPages > 1 && (
             <Pagination
               page={archivePage.page}
@@ -269,9 +310,9 @@ export default function Archives() {
                 ? ` ses ${toRestore.interventionCount} intervention${toRestore.interventionCount > 1 ? 's' : ''} d’historique.`
                 : ' son statut d’avant la suppression.'}
             </p>
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="fm-modal-actions mt-6">
               <button onClick={() => setToRestore(null)}
-                className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+                className="fm-btn-ghost">
                 Annuler
               </button>
               <button onClick={() => restoreM.mutate(toRestore.id)} disabled={restoreM.isPending} className="fm-btn-primary">

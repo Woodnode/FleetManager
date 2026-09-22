@@ -15,7 +15,7 @@ export default function Pagination({ page, totalPages, totalCount, pageSize, onP
   const end   = Math.min(page * pageSize, totalCount)
 
   return (
-    <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-400"
+    <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-2 text-xs text-slate-500"
       style={{ borderTop: '1px solid var(--border-light)' }}>
       <span>{start}–{end} sur {totalCount}</span>
 
@@ -23,7 +23,7 @@ export default function Pagination({ page, totalPages, totalCount, pageSize, onP
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="p-1.5 rounded-md disabled:opacity-30 hover:bg-slate-100 transition-colors"
+          className="fm-icon-btn text-slate-500 disabled:opacity-30 hover:bg-slate-100"
           aria-label="Page précédente"
         >
           <ChevronLeft size={14} aria-hidden="true" />
@@ -36,7 +36,7 @@ export default function Pagination({ page, totalPages, totalCount, pageSize, onP
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="p-1.5 rounded-md disabled:opacity-30 hover:bg-slate-100 transition-colors"
+          className="fm-icon-btn text-slate-500 disabled:opacity-30 hover:bg-slate-100"
           aria-label="Page suivante"
         >
           <ChevronRight size={14} aria-hidden="true" />

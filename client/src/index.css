@@ -45,7 +45,21 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--surface-page);
+  -webkit-tap-highlight-color: transparent;
 }
+
+/* Supprime le délai de double-tap sur les contrôles (mobile). */
+a, button, input, select, textarea, label, [role="button"] { touch-action: manipulation; }
+
+/* Focus clavier visible partout : aucun bouton n'en avait. */
+:focus-visible {
+  outline: 2px solid var(--brand-500);
+  outline-offset: 2px;
+}
+.fm-input:focus-visible, .fm-input-dark:focus-visible { outline: none; }
+
+/* Blocage du défilement de la page sous un tiroir ou une modale ouverte. */
+body.fm-scroll-lock { overflow: hidden; }
 
 /* ═══════════════════════════════════════════════
    Scrollbar
@@ -80,6 +94,10 @@ body {
   transition: color 0.13s ease, background 0.13s ease, border-color 0.13s ease;
 }
 
+@media (pointer: coarse) {
+  .fm-nav-link { padding: 12px; font-size: 0.9rem; }
+}
+
 .fm-nav-link:hover {
   color: #e2e8f0;
   background: var(--sidebar-hover);
@@ -102,9 +120,11 @@ body {
   transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.fm-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .fm-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
+  }
 }
 
 /* KPI top-border color accents */
@@ -145,6 +165,10 @@ body {
     color: #94a3b8;
     cursor: not-allowed;
   }
+
+  @media (pointer: coarse) {
+    .fm-input { font-size: 1rem; min-height: 44px; }
+  }
 }
 
 /* Login page dark inputs */
@@ -162,6 +186,10 @@ body {
 }
 
 .fm-input-dark::placeholder { color: rgba(255,255,255,0.25); }
+
+@media (pointer: coarse) {
+  .fm-input-dark { font-size: 1rem; min-height: 44px; }
+}
 
 .fm-input-dark:focus {
   border-color: var(--brand-400);
@@ -205,6 +233,72 @@ body {
   cursor: not-allowed;
 }
 
+@layer components {
+.fm-btn-ghost,
+.fm-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: var(--radius-btn);
+  transition: background-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fm-btn-ghost { color: #475569; }
+.fm-btn-ghost:hover { background: #f1f5f9; }
+.fm-btn-danger { color: white; background: #dc2626; }
+.fm-btn-danger:hover:not(:disabled) { background: #b91c1c; }
+.fm-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Bouton icône seul : 32px à la souris, 44px au doigt (cible tactile minimale). */
+.fm-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+@media (pointer: coarse) {
+  .fm-btn-primary, .fm-btn-ghost, .fm-btn-danger { min-height: 44px; }
+  .fm-icon-btn { width: 44px; height: 44px; }
+}
+
+/* Actions révélées au survol uniquement quand un survol existe (souris). Au doigt, elles
+   restent visibles ; au clavier, elles apparaissent dès qu'un bouton reçoit le focus. */
+@media (hover: hover) and (pointer: fine) {
+  .fm-reveal { opacity: 0; transition: opacity 0.15s ease; }
+  .group:hover .fm-reveal,
+  .group:focus-within .fm-reveal { opacity: 1; }
+}
+
+/* Pieds de modale : boutons empilés pleine largeur sur mobile, action principale en premier. */
+.fm-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+@media (max-width: 639px) {
+  .fm-modal-actions { flex-direction: column-reverse; }
+  .fm-modal-actions > * { width: 100%; justify-content: center; }
+}
+
+/* Rangée de filtres qui défile horizontalement sur mobile, sans barre visible. */
+.fm-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.fm-scroll-x::-webkit-scrollbar { display: none; }
+}
+
 /* ═══════════════════════════════════════════════
    Modal
 ═══════════════════════════════════════════════ */
@@ -212,7 +306,11 @@ body {
   background: white;
   border-radius: 16px;
   box-shadow: var(--shadow-modal);
-  overflow: hidden;
+  /* Pas d'overflow: hidden ici : hors couche, il annulait overflow-y-auto et une modale plus
+     haute que l'écran était coupée sans pouvoir défiler. */
+}
+@media (max-width: 639px) {
+  .fm-modal { border-radius: 16px 16px 0 0; }
 }
 
 .fm-modal-bar {
@@ -242,7 +340,24 @@ body {
   to   { opacity: 1; transform: translateY(0);   }
 }
 
-.fm-page { animation: fm-in 0.22s ease both; }
+.fm-page {
+  animation: fm-in 0.22s ease both;
+  padding: 20px 16px calc(32px + env(safe-area-inset-bottom));
+}
+@media (min-width: 640px)  { .fm-page { padding: 24px 24px calc(32px + env(safe-area-inset-bottom)); } }
+@media (min-width: 1024px) { .fm-page { padding: 32px; } }
+
+@keyframes fm-sheet-in {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.fm-sheet { animation: fm-sheet-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-page, .fm-sheet { animation: none; }
+  .animate-pulse { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
 
 /* ═══════════════════════════════════════════════
    Table Head Helper
