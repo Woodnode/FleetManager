@@ -1,3 +1,5 @@
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using FleetManager.Infrastructure.Realtime;
 using FleetManager.Application.Interfaces;
 using FleetManager.Domain.Interfaces;
 using FleetManager.Infrastructure.Persistence;
@@ -16,10 +18,15 @@ public static class DependencyInjection
     {
         services.Configure<JwtSettings>(configuration.GetSection("JwtSettings"));
 
-        services.AddDbContext<FleetManagerDbContext>(options =>
+        // Temps réel : l'API remplace ce notificateur vide par SignalR.
+        services.TryAddSingleton<IRealtimeNotifier, NoOpRealtimeNotifier>();
+        services.AddScoped<RealtimeChangeInterceptor>();
+
+        services.AddDbContext<FleetManagerDbContext>((sp, options) =>
             options.UseNpgsql(
                 configuration.GetConnectionString("DefaultConnection"),
-                b => b.MigrationsAssembly(typeof(FleetManagerDbContext).Assembly.FullName)));
+                b => b.MigrationsAssembly(typeof(FleetManagerDbContext).Assembly.FullName))
+            .AddInterceptors(sp.GetRequiredService<RealtimeChangeInterceptor>()));
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
