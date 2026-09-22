@@ -116,31 +116,35 @@ body {
 /* ═══════════════════════════════════════════════
    Inputs & Forms
 ═══════════════════════════════════════════════ */
-.fm-input {
-  width: 100%;
-  border: 1.5px solid #e2e8f0;
-  border-radius: var(--radius-btn);
-  padding: 9px 14px;
-  font-size: 0.875rem;
-  font-family: var(--font-sans);
-  color: #0f172a;
-  background: white;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  outline: none;
-  appearance: none;
-}
+/* Dans @layer components : les utilitaires Tailwind (ex. pl-9 pour laisser la place à une icône)
+   doivent pouvoir surcharger ce style. Hors couche, il gagnait toujours sur les utilitaires. */
+@layer components {
+  .fm-input {
+    width: 100%;
+    border: 1.5px solid #e2e8f0;
+    border-radius: var(--radius-btn);
+    padding: 9px 14px;
+    font-size: 0.875rem;
+    font-family: var(--font-sans);
+    color: #0f172a;
+    background: white;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    outline: none;
+    appearance: none;
+  }
 
-.fm-input::placeholder { color: #94a3b8; }
+  .fm-input::placeholder { color: #94a3b8; }
 
-.fm-input:focus {
-  border-color: var(--brand-500);
-  box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.12);
-}
+  .fm-input:focus {
+    border-color: var(--brand-500);
+    box-shadow: 0 0 0 3px rgba(76, 110, 245, 0.12);
+  }
 
-.fm-input:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
-  cursor: not-allowed;
+  .fm-input:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+  }
 }
 
 /* Login page dark inputs */
