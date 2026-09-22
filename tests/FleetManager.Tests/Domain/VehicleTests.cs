@@ -78,4 +78,29 @@ public class VehicleTests
 
         act.Should().Throw<DomainException>().WithMessage("*Mileage*");
     }
+
+    [Fact]
+    public void SoftDelete_WhenAvailable_ShouldMarkAsDeleted()
+    {
+        var vehicle = Vehicle.Create(ValidVin, "Toyota", "Corolla", 2022, 0, StoreId);
+
+        vehicle.SoftDelete();
+
+        vehicle.IsDeleted.Should().BeTrue();
+        vehicle.DeletedAt.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void SoftDelete_WhenInIntervention_ShouldThrowDomainException()
+    {
+        // Un véhicule passe InIntervention dès qu'une intervention est planifiée, jusqu'à sa
+        // clôture ou annulation : le supprimer rendrait cette intervention introuvable.
+        var vehicle = Vehicle.Create(ValidVin, "Toyota", "Corolla", 2022, 0, StoreId);
+        vehicle.ChangeStatus(VehicleStatus.InIntervention);
+
+        var act = () => vehicle.SoftDelete();
+
+        act.Should().Throw<DomainException>().WithMessage("*intervention*");
+        vehicle.IsDeleted.Should().BeFalse();
+    }
 }

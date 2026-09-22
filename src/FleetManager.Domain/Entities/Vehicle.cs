@@ -95,6 +95,11 @@ public class Vehicle : ISoftDeletable
 
     public void SoftDelete()
     {
+        // Le statut InIntervention couvre une intervention planifiée ou en cours : supprimer le
+        // véhicule la rendrait introuvable et impossible à clôturer.
+        if (Status == VehicleStatus.InIntervention)
+            throw new DomainException("Impossible de supprimer un véhicule avec une intervention planifiée ou en cours.");
+
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
     }
