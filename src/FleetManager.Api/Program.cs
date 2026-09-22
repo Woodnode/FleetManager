@@ -201,10 +201,12 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-app.UseMiddleware<SecurityHeadersMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
+    // Registered before SecurityHeadersMiddleware so the restrictive CSP below
+    // (default-src 'none') doesn't get attached to Swagger UI's own assets —
+    // otherwise the browser blocks swagger-ui.css/js and the page renders blank.
     var apiVersionDescriptionProvider = app.Services.GetRequiredService<IApiVersionDescriptionProvider>();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
@@ -214,6 +216,8 @@ if (app.Environment.IsDevelopment())
         c.RoutePrefix = string.Empty;
     });
 }
+
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 app.UseHttpsRedirection();
 app.UseCors("Frontend");
