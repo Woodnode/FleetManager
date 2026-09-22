@@ -1,23 +1,23 @@
 services:
 
-  # ── SQL Server ─────────────────────────────────────────────────────────────
-  sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: fleetmanager-sqlserver
+  # ── PostgreSQL ─────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: fleetmanager-postgres
     environment:
-      ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "FleetManager@2024!"
-      MSSQL_PID: "Express"
+      POSTGRES_DB: fleetmanager
+      POSTGRES_USER: fleetmanager
+      # Secrets lus dans .env (non versionné) : copier .env.example en .env et remplir.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans .env}
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - sqlserver_data:/var/opt/mssql
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "FleetManager@2024!" -Q "SELECT 1" -No -C
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U fleetmanager -d fleetmanager"]
+      interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 30s
     restart: unless-stopped
 
   # ── API ────────────────────────────────────────────────────────────────────
@@ -29,23 +29,17 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: "Production"
       ASPNETCORE_URLS: "http://+:8080"
-      ConnectionStrings__DefaultConnection: >
-        Server=sqlserver,1433;
-        Database=FleetManagerDb;
-        User Id=sa;
-        Password=FleetManager@2024!;
-        TrustServerCertificate=True;
-        MultipleActiveResultSets=True;
-      JwtSettings__Secret: "FleetManager_JWT_Secret_Key_MinLength_32_Chars!"
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=fleetmanager;Username=fleetmanager;Password=${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans .env}"
+      JwtSettings__Secret: ${JWT_SECRET:?Définir JWT_SECRET dans .env (32 caractères minimum)}
       JwtSettings__ExpiryMinutes: "60"
       JwtSettings__Issuer: "FleetManagerApi"
       JwtSettings__Audience: "FleetManagerClient"
     ports:
       - "5000:8080"
     depends_on:
-      sqlserver:
+      postgres:
         condition: service_healthy
     restart: unless-stopped
 
 volumes:
-  sqlserver_data:
+  postgres_data:
