@@ -37,7 +37,7 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="min-h-dvh bg-slate-950 flex">
 
       {/* ── Left panel ── */}
       <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 relative overflow-hidden"
@@ -116,7 +116,7 @@ export default function Login() {
       </div>
 
       {/* ── Right panel (form) ── */}
-      <div className="flex-1 flex items-center justify-center p-8">
+      <div className="flex-1 flex items-center justify-center px-5 py-10 sm:p-8 pt-[max(2.5rem,env(safe-area-inset-top))]">
         <div className="w-full max-w-sm">
 
           {/* Mobile logo */}
@@ -202,10 +202,10 @@ export default function Login() {
                   key={role}
                   type="button"
                   onClick={() => { setValue('email', demoEmail); setValue('password', 'Fleet@2024') }}
-                  className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs transition-colors text-left bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
+                  className="w-full flex items-center justify-between px-3.5 py-2.5 pointer-coarse:py-3 rounded-lg text-xs transition-colors text-left bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06]"
                 >
                   <span
-                    className="font-medium px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wide"
+                    className="font-medium px-1.5 py-0.5 rounded text-[11px] uppercase tracking-wide"
                     style={{ background: 'rgba(76,110,245,0.15)', color: 'var(--brand-400)' }}
                   >
                     {role}

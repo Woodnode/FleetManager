@@ -14,6 +14,7 @@ import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
 import { getApiErrorMessage, getArchivedVinConflict, type ArchivedVinConflict } from '../utils/apiError'
 import { useRestoreVehicle } from '../hooks/useRestoreVehicle'
+import { useIsMobile } from '../hooks/useMediaQuery'
 import { createVehicleSchema, updateVehicleSchema, type CreateVehicleFormValues, type UpdateVehicleFormValues } from '../schemas/vehicle'
 import type { Vehicle, VehicleStatus, CreateVehicleRequest, UpdateVehicleRequest, Store } from '../types'
 
@@ -105,13 +106,13 @@ function VehicleCard({ vehicle: v, canDelete, onEdit, onStatus, onDelete }: {
   onDelete: () => void
 }) {
   return (
-    <div className="fm-card p-5 group">
+    <div className="fm-card p-4 sm:p-5 group">
       <div className="flex items-start justify-between mb-3">
         <div className="min-w-0 flex-1">
           <p className="font-semibold text-slate-900 text-sm truncate">{v.brand} {v.model}</p>
-          <p className="text-[11px] font-mono text-slate-400 mt-0.5 tracking-wide">{v.vin}</p>
+          <p className="text-xs font-mono text-slate-400 mt-0.5 tracking-wide truncate">{v.vin}</p>
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 ml-2">
+        <div className="flex items-center gap-1 fm-reveal shrink-0 ml-2">
           <ActionBtn onClick={onStatus} icon={<RefreshCw size={12} />} title="Changer le statut" color="blue" />
           <ActionBtn onClick={onEdit} icon={<Pencil size={12} />} title="Modifier" color="slate" />
           {canDelete && <ActionBtn onClick={onDelete} icon={<Trash2 size={12} />} title="Supprimer" color="red" />}
@@ -129,7 +130,7 @@ function VehicleCard({ vehicle: v, canDelete, onEdit, onStatus, onDelete }: {
       >
         <span className="font-medium">{v.year}</span>
         <span className="tabular-nums">{v.mileage.toLocaleString('fr-FR')} km</span>
-        <span className="truncate max-w-[96px] ml-2">{v.storeName}</span>
+        <span className="truncate max-w-[45%] ml-2 text-right">{v.storeName}</span>
       </div>
     </div>
   )
@@ -192,7 +193,7 @@ function CreateVehicleForm({ stores, onSubmit, pending, onCancel, archivedConfli
           placeholder="Ex: VF1RFD00X67891234" />
         <FieldError msg={errors.vin?.message} />
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           {label('Marque', 'cv-brand', true)}
           <input id="cv-brand" {...register('brand')} className={inputCls} placeholder="Renault" />
@@ -204,7 +205,7 @@ function CreateVehicleForm({ stores, onSubmit, pending, onCancel, archivedConfli
           <FieldError msg={errors.model?.message} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           {label('Année', 'cv-year')}
           <input id="cv-year" type="number" {...register('year', { valueAsNumber: true })} min={1990} max={2030} className={inputCls} />
@@ -228,9 +229,9 @@ function CreateVehicleForm({ stores, onSubmit, pending, onCancel, archivedConfli
         <FieldError msg={errors.storeId?.message} />
       </div>
       {archivedConflict && <ArchivedVinAlert conflict={archivedConflict} onRestore={onRestore} restoring={restoring} />}
-      <div className="flex justify-end gap-3 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+      <div className="fm-modal-actions mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+          className="fm-btn-ghost">
           Annuler
         </button>
         <button type="submit" disabled={pending} className="fm-btn-primary">
@@ -257,7 +258,7 @@ function EditVehicleForm({ vehicle, stores, onSubmit, pending, onCancel }: EditV
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           {label('Marque', 'ev-brand', true)}
           <input id="ev-brand" {...register('brand')} className={inputCls} placeholder="Renault" />
@@ -269,7 +270,7 @@ function EditVehicleForm({ vehicle, stores, onSubmit, pending, onCancel }: EditV
           <FieldError msg={errors.model?.message} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           {label('Année', 'ev-year')}
           <input id="ev-year" type="number" {...register('year', { valueAsNumber: true })} min={1990} max={2030} className={inputCls} />
@@ -288,9 +289,9 @@ function EditVehicleForm({ vehicle, stores, onSubmit, pending, onCancel }: EditV
           {stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
-      <div className="flex justify-end gap-3 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+      <div className="fm-modal-actions mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+          className="fm-btn-ghost">
           Annuler
         </button>
         <button type="submit" disabled={pending} className="fm-btn-primary">
@@ -312,6 +313,9 @@ export default function Vehicles() {
   const [statusFilter, setStatusFilter] = useState('')
   const [page, setPage]                 = useState(1)
   const [viewMode, setViewMode]         = useState<'table' | 'grid'>('table')
+  // Sous 768px, un tableau de 7 colonnes ne tient pas : cartes imposées.
+  const isMobile = useIsMobile()
+  const effectiveView = isMobile ? 'grid' : viewMode
   const [addOpen, setAddOpen]           = useState(false)
   const [editVehicle, setEditVehicle]   = useState<Vehicle | null>(null)
   const [statusVehicle, setStatusVehicle] = useState<Vehicle | null>(null)
@@ -374,7 +378,7 @@ export default function Vehicles() {
   const resetFilters = () => { handleSearchChange(''); handleStatusChange('') }
 
   return (
-    <div className="p-8 fm-page">
+    <div className="fm-page">
       <PageHeader
         title="Véhicules"
         subtitle={`${vehiclesPage?.totalCount ?? 0} véhicule${(vehiclesPage?.totalCount ?? 0) !== 1 ? 's' : ''} dans le parc`}
@@ -385,71 +389,80 @@ export default function Vehicles() {
         }
       />
 
-      {/* Toolbar: pills + search + view toggle */}
-      <div className="flex items-center gap-2 flex-wrap mb-5">
-        {/* Status pills */}
-        {STATUS_PILLS.map(pill => (
-          <button
-            key={pill.value}
-            onClick={() => handleStatusChange(pill.value)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-              statusFilter === pill.value
-                ? 'bg-slate-900 text-white shadow-sm'
-                : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-slate-700'
-            }`}
-          >
-            {pill.label}
-          </button>
-        ))}
-
-        <div className="flex-1 min-w-[8px]" />
-
-        {/* Search */}
-        <div className="relative">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-          <input
-            type="text"
-            placeholder="VIN, marque, modèle..."
-            value={search}
-            onChange={e => handleSearchChange(e.target.value)}
-            className="fm-input pl-9"
-            style={{ width: 210 }}
-          />
+      {/* Toolbar : recherche puis filtres défilants sur mobile, une seule ligne à partir de md */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:flex-wrap mb-5">
+        <div className="fm-scroll-x -mx-4 px-4 sm:-mx-6 sm:px-6 md:mx-0 md:px-0 md:overflow-visible order-2 md:order-1">
+          <div className="flex gap-2 w-max md:w-auto md:flex-wrap" role="group" aria-label="Filtrer par statut">
+            {STATUS_PILLS.map(pill => (
+              <button
+                key={pill.value}
+                onClick={() => handleStatusChange(pill.value)}
+                aria-pressed={statusFilter === pill.value}
+                className={`px-3.5 py-1.5 pointer-coarse:py-2.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                  statusFilter === pill.value
+                    ? 'bg-slate-900 text-white shadow-sm'
+                    : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-400 hover:text-slate-700'
+                }`}
+              >
+                {pill.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* View toggle */}
-        <div className="flex gap-0.5 p-1 bg-slate-100 rounded-lg">
-          <button
-            onClick={() => setViewMode('table')}
-            className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
-            aria-label="Vue tableau"
-          >
-            <LayoutList size={14} />
-          </button>
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
-            aria-label="Vue grille"
-          >
-            <LayoutGrid size={14} />
-          </button>
+        <div className="hidden md:block flex-1 min-w-[8px] md:order-2" />
+
+        <div className="flex items-center gap-2 order-1 md:order-3">
+          {/* Search */}
+          <div className="relative flex-1 md:flex-none">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="search"
+              placeholder="VIN, marque, modèle..."
+              aria-label="Rechercher un véhicule"
+              value={search}
+              onChange={e => handleSearchChange(e.target.value)}
+              className="fm-input pl-9 md:w-[220px]"
+            />
+          </div>
+
+          {/* View toggle : inutile sous md, où la vue cartes est imposée */}
+          <div className="hidden md:flex gap-0.5 p-1 bg-slate-100 rounded-lg" role="group" aria-label="Affichage">
+            <button
+              onClick={() => setViewMode('table')}
+              aria-pressed={viewMode === 'table'}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+              aria-label="Vue tableau"
+            >
+              <LayoutList size={14} />
+            </button>
+            <button
+              onClick={() => setViewMode('grid')}
+              aria-pressed={viewMode === 'grid'}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}
+              aria-label="Vue grille"
+            >
+              <LayoutGrid size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* ── Table view ── */}
-      {viewMode === 'table' && (
+      {effectiveView === 'table' && (
         isLoading ? (
           <SkeletonTable rows={6} cols={7} />
         ) : (
           <div className="fm-card overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full">
               <caption className="sr-only">Liste des véhicules du parc</caption>
               <thead>
                 <tr style={{ background: '#fafbfd', borderBottom: '1px solid var(--border-light)' }}>
                   <th scope="col" className="px-5 py-3.5 text-left fm-th">VIN</th>
                   <th scope="col" className="px-5 py-3.5 text-left fm-th">Marque / Modèle</th>
-                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Année</th>
-                  <th scope="col" className="px-5 py-3.5 text-left fm-th">Kilométrage</th>
+                  <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Année</th>
+                  <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Kilométrage</th>
                   <th scope="col" className="px-5 py-3.5 text-left fm-th">Statut</th>
                   <th scope="col" className="px-5 py-3.5 text-left fm-th">Enseigne</th>
                   <th scope="col" className="px-5 py-3.5 text-right fm-th">Actions</th>
@@ -465,21 +478,25 @@ export default function Vehicles() {
                 ) : vehicles.map(v => (
                   <tr key={v.id} className="transition-colors hover:bg-slate-50/80 group"
                     style={{ borderBottom: '1px solid var(--border-light)' }}>
-                    <td className="px-5 py-3.5 font-mono text-xs text-slate-500 tracking-wide">{v.vin}</td>
+                    <td className="px-5 py-3.5 font-mono text-xs text-slate-500 tracking-wide whitespace-nowrap">{v.vin}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: STATUS_DOT[v.status] }} />
-                        <span className="text-sm font-medium text-slate-900">{v.brand} {v.model}</span>
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-slate-900">{v.brand} {v.model}</span>
+                          {/* Année et kilométrage, masqués en colonnes sous xl, restent lisibles ici */}
+                          <p className="xl:hidden text-xs text-slate-400 tabular-nums">{v.year} · {v.mileage.toLocaleString('fr-FR')} km</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-5 py-3.5 text-sm text-slate-500">{v.year}</td>
-                    <td className="px-5 py-3.5 text-sm text-slate-500 tabular-nums">
+                    <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500">{v.year}</td>
+                    <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500 tabular-nums">
                       {v.mileage.toLocaleString('fr-FR')} km
                     </td>
                     <td className="px-5 py-3.5"><Badge value={v.status} label={v.statusLabel} /></td>
                     <td className="px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 fm-reveal">
                         <ActionBtn onClick={() => { setNewStatus(v.status); setStatusVehicle(v) }} icon={<RefreshCw size={13} />} title="Changer le statut" color="blue" />
                         <ActionBtn onClick={() => setEditVehicle(v)} icon={<Pencil size={13} />} title="Modifier" color="slate" />
                         {canDelete && <ActionBtn onClick={() => setDeleteVehicle(v)} icon={<Trash2 size={13} />} title="Supprimer" color="red" />}
@@ -489,6 +506,7 @@ export default function Vehicles() {
                 ))}
               </tbody>
             </table>
+            </div>
             {!isLoading && vehiclesPage && vehiclesPage.totalPages > 1 && (
               <Pagination
                 page={vehiclesPage.page}
@@ -503,7 +521,7 @@ export default function Vehicles() {
       )}
 
       {/* ── Grid view ── */}
-      {viewMode === 'grid' && (
+      {effectiveView === 'grid' && (
         isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -568,7 +586,7 @@ export default function Vehicles() {
       </Modal>
 
       {editVehicle && (
-        <Modal open onClose={() => setEditVehicle(null)} title={`Modifier — ${editVehicle.brand} ${editVehicle.model}`} size="md">
+        <Modal open onClose={() => setEditVehicle(null)} title={`Modifier : ${editVehicle.brand} ${editVehicle.model}`} size="md">
           <EditVehicleForm
             key={editVehicle.id}
             vehicle={editVehicle}
@@ -600,9 +618,9 @@ export default function Vehicles() {
             </p>
           )}
         </div>
-        <div className="flex justify-end gap-3 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+        <div className="fm-modal-actions mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
           <button onClick={() => setStatusVehicle(null)}
-            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+            className="fm-btn-ghost">
             Annuler
           </button>
           <button onClick={() => statusVehicle && statusM.mutate({ id: statusVehicle.id, status: newStatus })}
@@ -621,13 +639,13 @@ export default function Vehicles() {
         <p className="text-xs text-slate-500 mt-2">
           Le véhicule sera retiré du parc et placé dans les archives, avec son historique d’interventions.
         </p>
-        <div className="flex justify-end gap-3 mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+        <div className="fm-modal-actions mt-6 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
           <button onClick={() => setDeleteVehicle(null)}
-            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+            className="fm-btn-ghost">
             Annuler
           </button>
           <button onClick={() => deleteVehicle && deleteM.mutate(deleteVehicle.id)} disabled={deleteM.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50">
+            className="fm-btn-danger">
             {deleteM.isPending ? 'Suppression...' : 'Supprimer'}
           </button>
         </div>
@@ -651,7 +669,7 @@ function ActionBtn({ onClick, icon, title, color }: {
   }
   return (
     <button onClick={onClick} aria-label={title}
-      className={`p-1.5 rounded-md transition-colors ${colors[color]}`}>
+      className={`fm-icon-btn ${colors[color]}`}>
       {icon}
     </button>
   )

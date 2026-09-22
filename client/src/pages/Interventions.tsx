@@ -11,6 +11,7 @@ import { usersApi } from '../api/users'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { SkeletonTable } from '../components/ui/Skeleton'
+import { useIsMobile } from '../hooks/useMediaQuery'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { createInterventionSchema, type CreateInterventionFormValues } from '../schemas/intervention'
@@ -71,7 +72,7 @@ function relativeDate(dateStr: string): { label: string; color: string } {
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function TechnicianAvatar({ name }: { name?: string | null }) {
-  if (!name) return <span className="text-sm text-slate-400">—</span>
+  if (!name) return <span className="text-sm text-slate-400">Non assigné</span>
   const initials = name.trim().split(/\s+/).map(p => p[0]).join('').slice(0, 2).toUpperCase()
   return (
     <div className="flex items-center gap-2">
@@ -99,9 +100,53 @@ function ActionBtn({ onClick, icon, title, color }: {
   }
   return (
     <button onClick={onClick} aria-label={title}
-      className={`p-1.5 rounded-md transition-colors ${colors[color]}`}>
+      className={`fm-icon-btn ${colors[color]}`}>
       {icon}
     </button>
+  )
+}
+
+function InterventionCard({ intervention: i, onStatus }: {
+  intervention: Intervention
+  onStatus: (i: Intervention, next: InterventionStatus) => void
+}) {
+  const urgency  = getUrgency(i)
+  const dateInfo = relativeDate(i.plannedStartDate)
+  const canStart  = i.status === 'Planned'
+  const canFinish = i.status === 'InProgress'
+  const canCancel = canStart || canFinish
+  return (
+    <article className="fm-card p-4" style={{ borderLeft: `3px solid ${URGENCY_BORDER[urgency]}` }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-slate-900 truncate">{i.vehicleBrand} {i.vehicleModel}</p>
+          <p className="text-xs text-slate-400 font-mono mt-0.5 truncate">{i.vehicleVin}</p>
+        </div>
+        <span className="text-xs tabular-nums font-semibold shrink-0 mt-0.5" style={{ color: dateInfo.color }}>{dateInfo.label}</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 mt-3">
+        <Badge value={i.type} label={i.typeLabel} />
+        <Badge value={i.status} label={i.statusLabel} />
+      </div>
+      <p className="text-xs text-slate-500 mt-2.5 truncate">{i.technicianFullName ?? 'Non assigné'} · {i.storeName}</p>
+      {canCancel && (
+        <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: '1px solid var(--border-light)' }}>
+          {canStart && (
+            <button onClick={() => onStatus(i, 'InProgress')} className="fm-btn-ghost flex-1 text-blue-600 bg-blue-50/60">
+              <Play size={14} />Démarrer
+            </button>
+          )}
+          {canFinish && (
+            <button onClick={() => onStatus(i, 'Completed')} className="fm-btn-ghost flex-1 text-emerald-700 bg-emerald-50/60">
+              <CheckCheck size={14} />Terminer
+            </button>
+          )}
+          <button onClick={() => onStatus(i, 'Cancelled')} className="fm-btn-ghost flex-1 text-red-600 bg-red-50/60">
+            <XCircle size={14} />Annuler
+          </button>
+        </div>
+      )}
+    </article>
   )
 }
 
@@ -123,6 +168,7 @@ export default function Interventions() {
   const [addOpen, setAddOpen]           = useState(false)
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null)
   const [comment, setComment]           = useState('')
+  const isMobile = useIsMobile()
 
   // ── Form ─────────────────────────────────────────────────────────────────────
   const {
@@ -230,7 +276,7 @@ export default function Interventions() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div className="p-8 fm-page">
+    <div className="fm-page">
       <PageHeader
         title="Interventions"
         subtitle={`${interventionsPage?.totalCount ?? 0} intervention${(interventionsPage?.totalCount ?? 0) !== 1 ? 's' : ''} enregistrée${(interventionsPage?.totalCount ?? 0) !== 1 ? 's' : ''}`}
@@ -242,21 +288,21 @@ export default function Interventions() {
       />
 
       {/* Filters */}
-      <div className="flex gap-3 mb-4">
+      <div className="grid grid-cols-2 sm:flex gap-3 mb-4">
         <select value={statusFilter} onChange={e => handleStatusFilterChange(e.target.value)}
-          className="fm-input" style={{ width: 'auto' }}>
+          aria-label="Filtrer par statut" className="fm-input sm:w-auto">
           <option value="">Tous les statuts</option>
           {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
         </select>
         <select value={typeFilter} onChange={e => handleTypeFilterChange(e.target.value)}
-          className="fm-input" style={{ width: 'auto' }}>
+          aria-label="Filtrer par type" className="fm-input sm:w-auto">
           <option value="">Tous les types</option>
           {TYPE_OPTIONS.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
 
       {/* Urgency legend */}
-      <div className="flex items-center gap-4 mb-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-3">
         {([
           { color: '#4c6ef5', label: 'En cours' },
           { color: '#f59e0b', label: 'À démarrer / bientôt' },
@@ -264,24 +310,46 @@ export default function Interventions() {
         ] as const).map(({ color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className="w-2.5 h-2.5 rounded-sm" style={{ background: color, opacity: 0.8 }} />
-            <span className="text-[11px] text-slate-400">{label}</span>
+            <span className="text-xs text-slate-500">{label}</span>
           </div>
         ))}
       </div>
 
-      {/* Table */}
+      {/* Table (md et plus) / cartes (mobile) */}
       {isLoading ? (
         <SkeletonTable rows={6} cols={7} />
+      ) : isMobile ? (
+        <div className="space-y-3">
+          {interventions.length === 0 ? (
+            <div className="fm-card px-5 py-14 text-center text-sm text-slate-400">
+              {statusFilter || typeFilter ? 'Aucune intervention ne correspond aux filtres' : 'Aucune intervention enregistrée'}
+            </div>
+          ) : interventions.map(i => (
+            <InterventionCard key={i.id} intervention={i} onStatus={openStatus} />
+          ))}
+          {interventionsPage && interventionsPage.totalPages > 1 && (
+            <div className="fm-card overflow-hidden">
+              <Pagination
+                page={interventionsPage.page}
+                totalPages={interventionsPage.totalPages}
+                totalCount={interventionsPage.totalCount}
+                pageSize={interventionsPage.pageSize}
+                onPageChange={p => setPage(p)}
+              />
+            </div>
+          )}
+        </div>
       ) : (
         <div className="fm-card overflow-hidden">
+          <div className="overflow-x-auto">
           <table className="w-full">
             <caption className="sr-only">Liste des interventions</caption>
             <thead>
               <tr style={{ background: '#fafbfd', borderBottom: '1px solid var(--border-light)' }}>
                 <th scope="col" className="py-3.5 text-left fm-th" style={{ paddingLeft: 14, paddingRight: 20 }}>Véhicule</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Type</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Technicien</th>
-                <th scope="col" className="px-5 py-3.5 text-left fm-th">Enseigne</th>
+                <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Technicien</th>
+                <th scope="col" className="hidden xl:table-cell px-5 py-3.5 text-left fm-th">Enseigne</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Statut</th>
                 <th scope="col" className="px-5 py-3.5 text-left fm-th">Date début</th>
                 <th scope="col" className="px-5 py-3.5 text-right fm-th">Actions</th>
@@ -292,7 +360,7 @@ export default function Interventions() {
                 <tr>
                   <td colSpan={7} className="px-5 py-14 text-center text-sm text-slate-400">
                     {statusFilter || typeFilter
-                      ? 'Aucune intervention correspond aux filtres'
+                      ? 'Aucune intervention ne correspond aux filtres'
                       : 'Aucune intervention enregistrée'}
                   </td>
                 </tr>
@@ -320,6 +388,7 @@ export default function Interventions() {
                     <td className="py-3.5" style={{ paddingLeft: 14, paddingRight: 20 }}>
                       <p className="text-sm font-medium text-slate-900">{i.vehicleBrand} {i.vehicleModel}</p>
                       <p className="text-xs text-slate-400 font-mono mt-0.5">{i.vehicleVin}</p>
+                      <p className="xl:hidden text-xs text-slate-500 mt-0.5">{i.technicianFullName ?? 'Non assigné'} · {i.storeName}</p>
                     </td>
 
                     {/* Type */}
@@ -328,12 +397,12 @@ export default function Interventions() {
                     </td>
 
                     {/* Technicien */}
-                    <td className="px-5 py-3.5">
+                    <td className="hidden xl:table-cell px-5 py-3.5">
                       <TechnicianAvatar name={i.technicianFullName} />
                     </td>
 
                     {/* Enseigne */}
-                    <td className="px-5 py-3.5 text-sm text-slate-500">{i.storeName}</td>
+                    <td className="hidden xl:table-cell px-5 py-3.5 text-sm text-slate-500">{i.storeName}</td>
 
                     {/* Statut + progress bar */}
                     <td className="px-5 py-3.5">
@@ -352,13 +421,13 @@ export default function Interventions() {
                     </td>
 
                     {/* Date début (relative) */}
-                    <td className="px-5 py-3.5 text-sm tabular-nums font-medium" style={{ color: dateInfo.color }}>
+                    <td className="px-5 py-3.5 text-sm tabular-nums font-medium whitespace-nowrap" style={{ color: dateInfo.color }}>
                       {dateInfo.label}
                     </td>
 
                     {/* Actions */}
                     <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1 fm-reveal">
                         {i.status === 'Planned' && (
                           <ActionBtn onClick={() => openStatus(i, 'InProgress')}
                             icon={<Play size={13} />} title="Démarrer" color="blue" />
@@ -378,6 +447,7 @@ export default function Interventions() {
               })}
             </tbody>
           </table>
+          </div>
 
           {!isLoading && interventionsPage && interventionsPage.totalPages > 1 && (
             <Pagination
@@ -403,7 +473,7 @@ export default function Interventions() {
               <option value="">Sélectionner un véhicule</option>
               {vehicles.map(v => (
                 <option key={v.id} value={v.id}>
-                  {v.brand} {v.model} — {v.vin}
+                  {v.brand} {v.model} ({v.vin})
                   {v.status !== 'Available' ? ` (${v.statusLabel})` : ''}
                 </option>
               ))}
@@ -452,7 +522,7 @@ export default function Interventions() {
             {errors.technicianId && <p className="text-red-400 text-xs mt-1">{errors.technicianId.message}</p>}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label htmlFor="int-startDate" className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
                 Date début <span className="text-red-400">*</span>
@@ -477,9 +547,9 @@ export default function Interventions() {
               placeholder="Description optionnelle..." className="fm-input resize-none" />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
+          <div className="fm-modal-actions pt-4" style={{ borderTop: '1px solid var(--border-light)' }}>
             <button type="button" onClick={closeAdd}
-              className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+              className="fm-btn-ghost">
               Annuler
             </button>
             <button type="submit" disabled={createM.isPending} className="fm-btn-primary">
@@ -526,14 +596,14 @@ export default function Interventions() {
           </div>
         )}
 
-        <div className="flex justify-end gap-3 mt-6 pt-4"
+        <div className="fm-modal-actions mt-6 pt-4"
           style={{ borderTop: '1px solid var(--border-light)' }}>
           <button onClick={() => setStatusAction(null)}
-            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+            className="fm-btn-ghost">
             Annuler
           </button>
           <button onClick={handleStatusChange} disabled={statusM.isPending}
-            className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 text-white ${
+            className={`fm-btn-danger ${
               statusAction?.nextStatus === 'Cancelled'  ? 'bg-red-600 hover:bg-red-700' :
               statusAction?.nextStatus === 'Completed'  ? 'bg-emerald-600 hover:bg-emerald-700' :
               'bg-blue-600 hover:bg-blue-700'

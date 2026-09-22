@@ -63,7 +63,7 @@ function StoreForm({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="store-postal"
               className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
@@ -89,10 +89,10 @@ function StoreForm({
         </div>
       </div>
 
-      <div className="flex justify-end gap-3 mt-6 pt-4"
+      <div className="fm-modal-actions mt-6 pt-4"
         style={{ borderTop: '1px solid var(--border-light)' }}>
         <button type="button" onClick={onCancel}
-          className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+          className="fm-btn-ghost">
           Annuler
         </button>
         <button type="submit" disabled={pending} className="fm-btn-primary">
@@ -115,7 +115,7 @@ function StoreCard({ store: s, stats, isAdmin, onEdit, onDelete }: {
   const availPct = stats.total > 0 ? Math.round((stats.available / stats.total) * 100) : 0
 
   return (
-    <div className="fm-card p-5 group">
+    <div className="fm-card p-4 sm:p-5 group">
       {/* Header: icon + name + actions */}
       <div className="flex items-start gap-3 mb-4">
         <div
@@ -127,20 +127,20 @@ function StoreCard({ store: s, stats, isAdmin, onEdit, onDelete }: {
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-900 truncate tracking-tight">{s.name}</p>
-          <p className="text-xs text-slate-400 mt-0.5 truncate">{s.address || '—'}</p>
+          <p className="text-xs text-slate-400 mt-0.5 truncate">{s.address || 'Adresse non renseignée'}</p>
           {(s.postalCode || s.city) && (
             <p className="text-xs text-slate-400 truncate">{s.postalCode} {s.city}</p>
           )}
         </div>
 
         {isAdmin && (
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <div className="flex items-center gap-1 fm-reveal shrink-0">
             <button onClick={onEdit} aria-label="Modifier l'enseigne"
-              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
+              className="fm-icon-btn text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors">
               <Pencil size={13} />
             </button>
             <button onClick={onDelete} aria-label="Supprimer l'enseigne"
-              className="p-1.5 rounded-md text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+              className="fm-icon-btn text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
               <Trash2 size={13} />
             </button>
           </div>
@@ -181,7 +181,7 @@ function StoreCard({ store: s, stats, isAdmin, onEdit, onDelete }: {
             }}
           />
         </div>
-        <p className="text-[10px] text-slate-400 mt-1">
+        <p className="text-[11px] text-slate-500 mt-1">
           {availPct}% disponibilité
         </p>
       </div>
@@ -246,7 +246,7 @@ export default function Stores() {
   })
 
   return (
-    <div className="p-8 fm-page">
+    <div className="fm-page">
       <PageHeader
         title="Enseignes"
         subtitle={`${stores.length} enseigne${stores.length !== 1 ? 's' : ''}`}
@@ -258,7 +258,7 @@ export default function Stores() {
       />
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
           {[0, 1, 2].map(i => <SkeletonCard key={i} />)}
         </div>
       ) : stores.length === 0 ? (
@@ -280,7 +280,7 @@ export default function Stores() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
           {stores.map(s => (
             <StoreCard
               key={s.id}
@@ -307,7 +307,7 @@ export default function Stores() {
 
       {/* Edit Modal */}
       {editStore && (
-        <Modal open onClose={() => setEditStore(null)} title={`Modifier — ${editStore.name}`} size="sm">
+        <Modal open onClose={() => setEditStore(null)} title={`Modifier : ${editStore.name}`} size="sm">
           <StoreForm
             key={editStore.id}
             defaultValues={{
@@ -334,16 +334,16 @@ export default function Stores() {
           La suppression est impossible si l'enseigne contient encore des véhicules.
         </p>
         <p className="text-xs text-red-500 mt-2">Cette action est irréversible.</p>
-        <div className="flex justify-end gap-3 mt-6 pt-4"
+        <div className="fm-modal-actions mt-6 pt-4"
           style={{ borderTop: '1px solid var(--border-light)' }}>
           <button onClick={() => setDeleteStore(null)}
-            className="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors font-medium">
+            className="fm-btn-ghost">
             Annuler
           </button>
           <button
             onClick={() => deleteStore && deleteM.mutate(deleteStore.id)}
             disabled={deleteM.isPending}
-            className="inline-flex items-center gap-2 px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+            className="fm-btn-danger"
           >
             {deleteM.isPending ? 'Suppression...' : 'Supprimer'}
           </button>
