@@ -60,8 +60,13 @@ function getUrgency(i: Intervention): Urgency {
   return 'none'
 }
 
-function relativeDate(dateStr: string): { label: string; color: string } {
+// Seule une intervention planifiée et pas encore commencée peut être « en retard » : une
+// intervention terminée, annulée ou déjà en cours affichait aussi « En retard 6j » en rouge.
+function relativeDate(dateStr: string, status: Intervention['status']): { label: string; color: string } {
   const diff = Math.ceil((new Date(dateStr).getTime() - Date.now()) / 86_400_000)
+  if (status !== 'Planned' && diff < 0) {
+    return { label: new Date(dateStr).toLocaleDateString('fr-FR'), color: '#94a3b8' }
+  }
   if (diff < -1) return { label: `En retard ${Math.abs(diff)}j`, color: '#ef4444' }
   if (diff === -1) return { label: 'Hier',           color: '#f59e0b' }
   if (diff === 0)  return { label: "Aujourd'hui",    color: '#f59e0b' }
@@ -111,7 +116,7 @@ function InterventionCard({ intervention: i, onStatus }: {
   onStatus: (i: Intervention, next: InterventionStatus) => void
 }) {
   const urgency  = getUrgency(i)
-  const dateInfo = relativeDate(i.plannedStartDate)
+  const dateInfo = relativeDate(i.plannedStartDate, i.status)
   const canStart  = i.status === 'Planned'
   const canFinish = i.status === 'InProgress'
   const canCancel = canStart || canFinish
@@ -366,7 +371,7 @@ export default function Interventions() {
                 </tr>
               ) : interventions.map(i => {
                 const urgency  = getUrgency(i)
-                const dateInfo = relativeDate(i.plannedStartDate)
+                const dateInfo = relativeDate(i.plannedStartDate, i.status)
 
                 const showProgress = i.status === 'InProgress'
                 const startMs = new Date(i.plannedStartDate).getTime()
