@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Liste des interventions (Interventions.tsx à 375 px) : titre et nombre, bouton Planifier
+     pour l'administrateur et le gérant, filtres de statut et de type en pilules, cartes. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:controls="clr-namespace:AutoNexusMobile.Controls"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.InterventionsPage"
+                x:DataType="viewmodels:InterventionsViewModel"
+                Shell.NavBarIsVisible="False"
+                BackgroundColor="{StaticResource Sidebar}">
+
+    <!-- Fond de page sous l'en-tête : la page elle-même garde le sombre de l'en-tête, qui
+         remplit la zone de la barre d'état. -->
+    <Grid RowDefinitions="Auto,*" BackgroundColor="{AppThemeBinding Light={StaticResource PageLight}, Dark={StaticResource PageDark}}">
+        <controls:AppHeader />
+
+        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Interventions}" RemainingItemsThreshold="4" Margin="16,0"
+                            ItemTemplate="{StaticResource InterventionCard}"
+                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="0,20,0,14" Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout>
+                                <Label Text="Interventions" Style="{StaticResource TextDisplay}" SemanticProperties.HeadingLevel="Level1" />
+                                <Label Text="{Binding Subtitle}" Style="{StaticResource TextMeta}" FontSize="14" />
+                            </VerticalStackLayout>
+                            <Button Grid.Column="1" Text="Planifier" Command="{Binding CreateCommand}" IsVisible="{Binding CanCreate}" VerticalOptions="Center"
+                                    ImageSource="{FontImageSource Glyph={x:Static icons:Icons.Plus}, FontFamily=Lucide, Size=16, Color=White}" ContentLayout="Left,6" />
+                        </Grid>
+
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding StatusChoices}"
+                                                   BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                        </ScrollView>
+                        <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never" Margin="0,-8,0,0">
+                            <HorizontalStackLayout BindableLayout.ItemsSource="{Binding TypeChoices}"
+                                                   BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                        </ScrollView>
+
+                        <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                            <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+                        </Border>
+
+                        <VerticalStackLayout IsVisible="{Binding IsLoading}" Spacing="10">
+                            <BoxView HeightRequest="170" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                            <BoxView HeightRequest="170" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsEmpty}" Spacing="8" Padding="0,30">
+                            <Label Text="{x:Static icons:Icons.Wrench}" Style="{StaticResource IconMuted}" FontSize="30" />
+                            <Label Text="Aucune intervention trouvée" Style="{StaticResource TextMeta}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+
+                <CollectionView.Footer>
+                    <Grid Padding="0,6,0,24">
+                        <ActivityIndicator IsRunning="{Binding IsLoadingMore}" IsVisible="{Binding IsLoadingMore}" HeightRequest="24" />
+                    </Grid>
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+
+</views:PageBase>

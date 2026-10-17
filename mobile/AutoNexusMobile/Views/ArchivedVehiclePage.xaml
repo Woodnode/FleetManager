@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Historique d'un véhicule archivé : récapitulatif, bouton Restaurer, interventions passées. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.ArchivedVehiclePage"
+                x:DataType="viewmodels:ArchivedVehicleViewModel"
+                Title="Historique">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16,18,16,28" Spacing="14">
+            <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+            </Border>
+
+            <BoxView IsVisible="{Binding IsLoading}" HeightRequest="150" CornerRadius="14"
+                     Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+
+            <VerticalStackLayout Spacing="14" IsVisible="{Binding HasVehicle}">
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="6">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                            <Border Style="{StaticResource IconTile}">
+                                <Label Text="{x:Static icons:Icons.Archive}" Style="{StaticResource IconAccent}" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding Item.Name}" Style="{StaticResource TextDisplay}" FontSize="19" SemanticProperties.HeadingLevel="Level1" />
+                                <Label Text="{Binding Item.Dto.Vin}" Style="{StaticResource TextMono}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Label Text="{Binding Item.DeletedAt}" Style="{StaticResource TextMeta}" Margin="0,6,0,0" />
+                        <Label Text="{Binding Item.Details}" Style="{StaticResource TextMeta}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Button Text="Restaurer le véhicule" Command="{Binding RestoreCommand}"
+                        ImageSource="{FontImageSource Glyph={x:Static icons:Icons.ArchiveRestore}, FontFamily=Lucide, Size=16, Color=White}" ContentLayout="Left,8" />
+
+                <Label Text="Interventions" Style="{StaticResource TextOverline}" Margin="2,8,0,0" />
+                <Label Text="Aucune intervention dans l'historique" Style="{StaticResource TextMeta}"
+                       IsVisible="{Binding HasInterventions, Converter={StaticResource InvertedBool}}" />
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Interventions}" BindableLayout.ItemTemplate="{StaticResource InterventionCard}" />
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</views:PageBase>

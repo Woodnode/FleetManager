@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Archives (Archives.tsx à 375 px) : recherche, puis une carte par véhicule supprimé avec date
+     de suppression et boutons Restaurer et Historique. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:controls="clr-namespace:AutoNexusMobile.Controls"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.ArchivesPage"
+                x:DataType="viewmodels:ArchivesViewModel"
+                Shell.NavBarIsVisible="False"
+                BackgroundColor="{StaticResource Sidebar}">
+
+    <!-- Fond de page sous l'en-tête : la page elle-même garde le sombre de l'en-tête, qui
+         remplit la zone de la barre d'état. -->
+    <Grid RowDefinitions="Auto,*" BackgroundColor="{AppThemeBinding Light={StaticResource PageLight}, Dark={StaticResource PageDark}}">
+        <controls:AppHeader />
+
+        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <CollectionView ItemsSource="{Binding Vehicles}" RemainingItemsThreshold="4" Margin="16,0"
+                            RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}">
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="0,20,0,14" Spacing="14">
+                        <VerticalStackLayout>
+                            <Label Text="Archives" Style="{StaticResource TextDisplay}" SemanticProperties.HeadingLevel="Level1" />
+                            <Label Text="{Binding Subtitle}" Style="{StaticResource TextMeta}" FontSize="14" />
+                        </VerticalStackLayout>
+
+                        <Border Style="{StaticResource Field}">
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                <Label Text="{x:Static icons:Icons.Search}" Style="{StaticResource IconMuted}" FontSize="16" />
+                                <Entry Grid.Column="1" Text="{Binding Search}" Placeholder="VIN, marque, modèle..." IsSpellCheckEnabled="False"
+                                       SemanticProperties.Description="Rechercher dans les archives" />
+                            </Grid>
+                        </Border>
+
+                        <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                            <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+                        </Border>
+
+                        <VerticalStackLayout IsVisible="{Binding IsLoading}" Spacing="10">
+                            <BoxView HeightRequest="130" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                            <BoxView HeightRequest="130" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout IsVisible="{Binding IsEmpty}" Spacing="8" Padding="0,30">
+                            <Label Text="{x:Static icons:Icons.Archive}" Style="{StaticResource IconMuted}" FontSize="30" />
+                            <Label Text="Aucun véhicule archivé" Style="{StaticResource TextMeta}" HorizontalTextAlignment="Center" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="viewmodels:ArchivedItem">
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10" Padding="16,14" SemanticProperties.Description="{Binding Name}">
+                            <VerticalStackLayout Spacing="6">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label Text="{Binding Name}" Style="{StaticResource TextStrong}" LineBreakMode="TailTruncation" />
+                                    <Label Grid.Column="1" Text="{Binding DeletedAt}" Style="{StaticResource TextMeta}" FontSize="12" />
+                                </Grid>
+                                <Label Text="{Binding Dto.Vin}" Style="{StaticResource TextMono}" FontSize="12" />
+                                <Label Text="{Binding Details}" Style="{StaticResource TextMeta}" FontSize="12" />
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
+                                    <Button Text="Restaurer" Style="{StaticResource TintButton}" MinimumHeightRequest="42"
+                                            Command="{Binding BindingContext.RestoreCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}, x:DataType=ContentPage}"
+                                            CommandParameter="{Binding .}"
+                                            ImageSource="{FontImageSource Glyph={x:Static icons:Icons.ArchiveRestore}, FontFamily=Lucide, Size=15, Color={StaticResource Brand500}}" ContentLayout="Left,6" />
+                                    <Button Grid.Column="1" Text="Historique" Style="{StaticResource SecondaryButton}" MinimumHeightRequest="42"
+                                            Command="{Binding BindingContext.HistoryCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}, x:DataType=ContentPage}"
+                                            CommandParameter="{Binding .}"
+                                            ImageSource="{FontImageSource Glyph={x:Static icons:Icons.History}, FontFamily=Lucide, Size=15, Color={StaticResource MutedLight}}" ContentLayout="Left,6" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <Grid Padding="0,6,0,24">
+                        <ActivityIndicator IsRunning="{Binding IsLoadingMore}" IsVisible="{Binding IsLoadingMore}" HeightRequest="24" />
+                    </Grid>
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+    </Grid>
+
+</views:PageBase>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Ajout ou modification d'un véhicule, les modales du web en page plein écran : NIV (avec
+     scan) à l'ajout, marque et modèle, année et kilométrage côte à côte, enseigne. Libellé au
+     dessus du champ, erreur en dessous, comme les formulaires du web. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.VehicleFormPage"
+                x:DataType="viewmodels:VehicleFormViewModel"
+                Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16,20,16,32" Spacing="16">
+
+            <!-- NIV -->
+            <VerticalStackLayout Spacing="6" IsVisible="{Binding IsEdit, Converter={StaticResource InvertedBool}}">
+                <Label Text="VIN *" Style="{StaticResource TextFieldLabel}" />
+                <Border Style="{StaticResource Field}" Padding="12,0,4,0">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Entry Text="{Binding Vin}" Placeholder="Ex: VF1RFD00X67891234" FontFamily="monospace" MaxLength="17"
+                               Keyboard="Plain" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False"
+                               SemanticProperties.Description="Numéro d'identification du véhicule" />
+                        <Button Grid.Column="1" Style="{StaticResource IconButton}" BorderWidth="0" Background="Transparent" HeightRequest="40" WidthRequest="40"
+                                Text="{x:Static icons:Icons.ScanBarcode}" Command="{Binding ScanCommand}"
+                                TextColor="{AppThemeBinding Light={StaticResource AccentInkLight}, Dark={StaticResource AccentInkDark}}"
+                                SemanticProperties.Description="Scanner le NIV" />
+                    </Grid>
+                </Border>
+                <Label Text="{Binding VinError}" Style="{StaticResource TextError}" IsVisible="{Binding VinError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <!-- Véhicule archivé qui porte ce NIV -->
+            <Border Style="{StaticResource InfoBanner}" IsVisible="{Binding HasConflict}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{Binding Conflict.Message}" Style="{StaticResource InfoBannerText}" />
+                    <Label Style="{StaticResource TextBody}" FontSize="14">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="{Binding Conflict.Brand}" FontFamily="InterSemiBold" />
+                                <Span Text=" " />
+                                <Span Text="{Binding Conflict.Model}" FontFamily="InterSemiBold" />
+                                <Span Text=" · " />
+                                <Span Text="{Binding Conflict.Year}" />
+                                <Span Text=" · " />
+                                <Span Text="{Binding Conflict.StoreName}" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                    <Button Text="Restaurer ce véhicule" Command="{Binding RestoreCommand}" IsEnabled="{Binding IsIdle}"
+                            ImageSource="{FontImageSource Glyph={x:Static icons:Icons.ArchiveRestore}, FontFamily=Lucide, Size=16, Color=White}" ContentLayout="Left,8" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Marque *" Style="{StaticResource TextFieldLabel}" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry Text="{Binding Brand}" Placeholder="Renault" Keyboard="Text" SemanticProperties.Description="Marque" />
+                    </Border>
+                    <Label Text="{Binding BrandError}" Style="{StaticResource TextError}" IsVisible="{Binding BrandError, Converter={StaticResource HasValue}}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="6">
+                    <Label Text="Modèle *" Style="{StaticResource TextFieldLabel}" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry Text="{Binding Model}" Placeholder="Clio" Keyboard="Text" SemanticProperties.Description="Modèle" />
+                    </Border>
+                    <Label Text="{Binding ModelError}" Style="{StaticResource TextError}" IsVisible="{Binding ModelError, Converter={StaticResource HasValue}}" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Année" Style="{StaticResource TextFieldLabel}" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry Text="{Binding Year}" Keyboard="Numeric" MaxLength="4" SemanticProperties.Description="Année" />
+                    </Border>
+                    <Label Text="{Binding YearError}" Style="{StaticResource TextError}" IsVisible="{Binding YearError, Converter={StaticResource HasValue}}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="6">
+                    <Label Text="Kilométrage" Style="{StaticResource TextFieldLabel}" />
+                    <Border Style="{StaticResource Field}">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Entry Text="{Binding Mileage}" Keyboard="Numeric" MaxLength="7" SemanticProperties.Description="Kilométrage" />
+                            <Label Grid.Column="1" Text="km" Style="{StaticResource TextMeta}" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                    <Label Text="{Binding MileageError}" Style="{StaticResource TextError}" IsVisible="{Binding MileageError, Converter={StaticResource HasValue}}" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <!-- Enseigne : au choix pour l'administrateur, imposée par l'API aux autres rôles. -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Enseigne *" Style="{StaticResource TextFieldLabel}" />
+                <FlexLayout Wrap="Wrap" IsVisible="{Binding CanPickStore}" BindableLayout.ItemsSource="{Binding StoreChoices}"
+                            BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                <Border Style="{StaticResource Inset}" IsVisible="{Binding CanPickStore, Converter={StaticResource InvertedBool}}">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{x:Static icons:Icons.Building}" Style="{StaticResource IconMuted}" FontSize="16" />
+                        <Label Text="{Binding StoreName}" Style="{StaticResource TextStrong}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+                <Label Text="{Binding StoreError}" Style="{StaticResource TextError}" IsVisible="{Binding StoreError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+            </Border>
+
+            <Grid Margin="0,6,0,0">
+                <Button Text="{Binding SubmitLabel}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsIdle}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="White" HeightRequest="22" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</views:PageBase>

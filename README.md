@@ -173,11 +173,32 @@ On the login page, click any role card to auto-fill the credentials.
 
 ---
 
+## Mobile App (.NET MAUI)
+
+`mobile/AutoNexusMobile` is the Android/iOS companion app, built on the same API and the same visual identity as the web client (Inter, Lucide icons, `#4c6ef5` brand, light and dark themes).
+
+- **Every web screen**, adapted to the phone: dashboard, vehicles, interventions, stores, archives, each limited to what the user's role may do.
+- **Technician flow**: "Ma journée" lists today's assignments and overdue ones; an intervention card starts or completes the job (closing comment and odometer reading, which updates the vehicle).
+- **VIN scanner** (ZXing.Net.MAUI): reading the door-jamb or windscreen barcode opens the vehicle; manual entry is available when the label is unreadable.
+- **Live updates** through the SignalR hub, like the web client.
+
+The app sends `X-Client: mobile` on authentication calls: the API then returns the tokens in the response body (the browser keeps its httpOnly cookies). `mobile/AutoNexusMobile.Core` holds the API client, session and business rules; it is tested by `mobile/AutoNexusMobile.Tests` without the MAUI workload.
+
+```bash
+# Android emulator, against the local API (http profile, port 5290, reached through 10.0.2.2)
+dotnet build mobile/AutoNexusMobile -t:Install -f net10.0-android -c Debug
+```
+
+Demo accounts are offered on the login screen in Debug builds only. A Release build needs the API host at compile time: `dotnet publish -p:AutoNexusApiHost=https://...`. Fonts and icons are regenerated from the web packages with `mobile/AutoNexusMobile/scripts/generer_ressources.py`.
+
+---
+
 ## Running Tests
 
 ```bash
-cd tests/FleetManager.Tests
-dotnet test
+dotnet test FleetManager.sln                          # API, domain, application, integration
+dotnet test mobile/AutoNexusMobile.Tests              # mobile core (.NET 10)
+cd client && npm run lint && npx tsc -b && npm test   # web client
 ```
 
 ---
@@ -197,6 +218,8 @@ Main endpoints:
 | POST | `/api/v1/vehicles` | Create vehicle |
 | PATCH | `/api/v1/vehicles/{id}/status` | Change vehicle status |
 | GET | `/api/v1/interventions` | List interventions (paginated, filterable) |
+| GET | `/api/v1/interventions/mine` | Technician's day: assigned interventions and overdue open ones |
+| PATCH | `/api/v1/interventions/{id}/status` | Start, complete (optional odometer reading) or cancel |
 | POST | `/api/v1/interventions` | Create intervention |
 | PATCH | `/api/v1/interventions/{id}/status` | Advance intervention status |
 | GET | `/api/v1/stores` | List all branches |

@@ -1,0 +1,128 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Jetons de couleur repris du front web (client/src/index.css) : marque #4c6ef5, fond de page
+    #f5f7fb, cartes blanches à filet #e4e9f2, neutres ardoise de Tailwind. Le web n'a pas de
+    thème sombre : celui de l'app part de sa barre latérale et de sa page de connexion
+    (#0c1020, filets blancs à 7 %, marque claire #748ffc).
+    Les teintes de statut sont celles de components/ui/Badge.tsx (emerald, blue, amber, slate,
+    red, violet, orange, teal), en version foncée pour le thème sombre.
+    Voir aussi Platforms/Android/Resources/values*/colors.xml pour les couleurs natives.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+
+    <!-- Marque (brand-400/500/600) et barre latérale (sidebar-bg) -->
+    <Color x:Key="Brand400">#748FFC</Color>
+    <Color x:Key="Brand500">#4C6EF5</Color>
+    <Color x:Key="Brand600">#3B55E6</Color>
+    <Color x:Key="Sidebar">#0C1020</Color>
+    <Color x:Key="SidebarLine">#1C2133</Color>
+    <Color x:Key="SidebarInk">#F1F5F9</Color>
+    <Color x:Key="SidebarMuted">#94A3B8</Color>
+    <!-- Page de connexion du web (bg-slate-950) et ses champs (blanc à 5 %, filet blanc à 8 %). -->
+    <Color x:Key="Night">#020617</Color>
+    <Color x:Key="NightField">#0E1424</Color>
+    <Color x:Key="NightLine">#1C2233</Color>
+    <Color x:Key="NightLabel">#94A3B8</Color>
+    <Color x:Key="NightPlaceholder">#7C8BA1</Color>
+    <Color x:Key="NightHint">#64748B</Color>
+
+    <!-- Fonds et surfaces -->
+    <Color x:Key="PageLight">#F5F7FB</Color>
+    <Color x:Key="PageDark">#0C1020</Color>
+    <Color x:Key="SurfaceLight">#FFFFFF</Color>
+    <Color x:Key="SurfaceDark">#141A2E</Color>
+    <Color x:Key="SunkenLight">#F1F5F9</Color>
+    <Color x:Key="SunkenDark">#0A0D18</Color>
+    <Color x:Key="TrackLight">#F1F5F9</Color>
+    <Color x:Key="TrackDark">#232A40</Color>
+
+    <!-- Filets (border-base, border-light) -->
+    <Color x:Key="LineLight">#E4E9F2</Color>
+    <Color x:Key="LineDark">#232A40</Color>
+    <Color x:Key="LineSoftLight">#F1F5F9</Color>
+    <Color x:Key="LineSoftDark">#1C2236</Color>
+    <Color x:Key="LineStrongLight">#CBD5E1</Color>
+    <Color x:Key="LineStrongDark">#323B57</Color>
+
+    <!-- Texte : slate-900, slate-700, slate-500 (4,8:1 sur blanc) ; en sombre slate-100/300/400. -->
+    <Color x:Key="InkLight">#0F172A</Color>
+    <Color x:Key="InkDark">#F1F5F9</Color>
+    <Color x:Key="InkSoftLight">#334155</Color>
+    <Color x:Key="InkSoftDark">#CBD5E1</Color>
+    <Color x:Key="MutedLight">#64748B</Color>
+    <Color x:Key="MutedDark">#94A3B8</Color>
+
+    <!-- Accent : bouton plein #4c6ef5 (texte blanc 4,4:1 en gras), texte d'accent brand-600
+         en clair (5,3:1) et brand-400 en sombre (6,1:1 sur #141a2e). -->
+    <Color x:Key="AccentLight">#4C6EF5</Color>
+    <Color x:Key="AccentDark">#4C6EF5</Color>
+    <Color x:Key="AccentPressedLight">#3B55E6</Color>
+    <Color x:Key="AccentPressedDark">#3B55E6</Color>
+    <Color x:Key="AccentInkLight">#3B55E6</Color>
+    <Color x:Key="AccentInkDark">#91A7FF</Color>
+    <Color x:Key="AccentSoftLight">#EDF1FE</Color>
+    <Color x:Key="AccentSoftDark">#1C2550</Color>
+    <Color x:Key="AccentLineLight">#C9D4FC</Color>
+    <Color x:Key="AccentLineDark">#2E3C7A</Color>
+    <Color x:Key="OnAccent">#FFFFFF</Color>
+
+    <!-- Erreurs et suppression (red-600 / red-300) -->
+    <Color x:Key="DangerLight">#DC2626</Color>
+    <Color x:Key="DangerDark">#FCA5A5</Color>
+    <Color x:Key="DangerSoftLight">#FEF2F2</Color>
+    <Color x:Key="DangerSoftDark">#3A1518</Color>
+    <Color x:Key="DangerLineLight">#FECACA</Color>
+    <Color x:Key="DangerLineDark">#7F1D1D</Color>
+
+    <!-- Teintes de statut (Badge.tsx) : fond, texte, point. -->
+    <Color x:Key="EmeraldBgLight">#ECFDF5</Color>
+    <Color x:Key="EmeraldBgDark">#0F2A22</Color>
+    <Color x:Key="EmeraldInkLight">#047857</Color>
+    <Color x:Key="EmeraldInkDark">#6EE7B7</Color>
+    <Color x:Key="EmeraldDot">#10B981</Color>
+
+    <Color x:Key="BlueBgLight">#EFF6FF</Color>
+    <Color x:Key="BlueBgDark">#13213F</Color>
+    <Color x:Key="BlueInkLight">#1D4ED8</Color>
+    <Color x:Key="BlueInkDark">#93C5FD</Color>
+    <Color x:Key="BlueDot">#3B82F6</Color>
+
+    <Color x:Key="AmberBgLight">#FFFBEB</Color>
+    <Color x:Key="AmberBgDark">#2E2310</Color>
+    <Color x:Key="AmberInkLight">#B45309</Color>
+    <Color x:Key="AmberInkDark">#FCD34D</Color>
+    <Color x:Key="AmberDot">#F59E0B</Color>
+
+    <Color x:Key="SlateBgLight">#F1F5F9</Color>
+    <Color x:Key="SlateBgDark">#1E2538</Color>
+    <Color x:Key="SlateInkLight">#64748B</Color>
+    <Color x:Key="SlateInkDark">#94A3B8</Color>
+    <Color x:Key="SlateDot">#94A3B8</Color>
+
+    <Color x:Key="RedBgLight">#FEF2F2</Color>
+    <Color x:Key="RedBgDark">#3A1518</Color>
+    <Color x:Key="RedInkLight">#DC2626</Color>
+    <Color x:Key="RedInkDark">#FCA5A5</Color>
+    <Color x:Key="RedDot">#EF4444</Color>
+
+    <Color x:Key="VioletBgLight">#F5F3FF</Color>
+    <Color x:Key="VioletBgDark">#241A3D</Color>
+    <Color x:Key="VioletInkLight">#6D28D9</Color>
+    <Color x:Key="VioletInkDark">#C4B5FD</Color>
+    <Color x:Key="VioletDot">#7C3AED</Color>
+
+    <Color x:Key="OrangeBgLight">#FFF7ED</Color>
+    <Color x:Key="OrangeBgDark">#33200F</Color>
+    <Color x:Key="OrangeInkLight">#C2410C</Color>
+    <Color x:Key="OrangeInkDark">#FDBA74</Color>
+    <Color x:Key="OrangeDot">#EA580C</Color>
+
+    <Color x:Key="TealBgLight">#F0FDFA</Color>
+    <Color x:Key="TealBgDark">#0F2A28</Color>
+    <Color x:Key="TealInkLight">#0F766E</Color>
+    <Color x:Key="TealInkDark">#5EEAD4</Color>
+    <Color x:Key="TealDot">#0D9488</Color>
+
+</ResourceDictionary>

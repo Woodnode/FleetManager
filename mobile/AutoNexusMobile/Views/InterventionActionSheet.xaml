@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Changement de statut d'une intervention, la modale du web en feuille du bas : rappel du
+     véhicule, commentaire de clôture ou raison d'annulation, et, à la clôture, le kilométrage
+     relevé au compteur (propre au mobile, il met à jour la fiche du véhicule). -->
+<controls:BottomSheet xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                      xmlns:controls="clr-namespace:AutoNexusMobile.Controls"
+                      x:Class="AutoNexusMobile.Views.InterventionActionSheet">
+    <VerticalStackLayout Spacing="14">
+        <Label x:Name="TitleLabel" Style="{StaticResource TextTitle}" FontSize="18" SemanticProperties.HeadingLevel="Level2" />
+
+        <Border Style="{StaticResource Inset}">
+            <VerticalStackLayout Spacing="2">
+                <Label x:Name="VehicleLabel" Style="{StaticResource TextStrong}" />
+                <Label x:Name="VinLabel" Style="{StaticResource TextMono}" />
+            </VerticalStackLayout>
+        </Border>
+
+        <VerticalStackLayout x:Name="MileageBlock" Spacing="6" IsVisible="False">
+            <Label Text="Kilométrage relevé" Style="{StaticResource TextFieldLabel}" />
+            <Border Style="{StaticResource Field}">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Entry x:Name="MileageEntry" Keyboard="Numeric" SemanticProperties.Description="Kilométrage relevé au compteur" />
+                    <Label Grid.Column="1" Text="km" Style="{StaticResource TextMeta}" VerticalOptions="Center" />
+                </Grid>
+            </Border>
+            <Label x:Name="MileageHint" Style="{StaticResource TextMeta}" />
+        </VerticalStackLayout>
+
+        <VerticalStackLayout x:Name="CommentBlock" Spacing="6" IsVisible="False">
+            <Label x:Name="CommentLabel" Style="{StaticResource TextFieldLabel}" />
+            <Border Style="{StaticResource Field}" Padding="10,4">
+                <Editor x:Name="CommentEditor" MaxLength="1000" SemanticProperties.Description="Commentaire" />
+            </Border>
+        </VerticalStackLayout>
+
+        <Label x:Name="ErrorLabel" Style="{StaticResource TextError}" IsVisible="False" />
+
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,4,0,0">
+            <Button Text="Annuler" Style="{StaticResource SecondaryButton}" Clicked="OnCancelClicked" />
+            <Button x:Name="ConfirmButton" Grid.Column="1" Clicked="OnConfirmClicked" />
+        </Grid>
+    </VerticalStackLayout>
+</controls:BottomSheet>

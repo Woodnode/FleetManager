@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Ajout ou modification d'une enseigne : nom, adresse, code postal et ville. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                x:Class="AutoNexusMobile.Views.StoreFormPage"
+                x:DataType="viewmodels:StoreFormViewModel"
+                Title="{Binding Title}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16,20,16,32" Spacing="16">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Nom *" Style="{StaticResource TextFieldLabel}" />
+                <Border Style="{StaticResource Field}">
+                    <Entry Text="{Binding Name}" Placeholder="AutoNexus Paris Centre" SemanticProperties.Description="Nom" />
+                </Border>
+                <Label Text="{Binding NameError}" Style="{StaticResource TextError}" IsVisible="{Binding NameError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Adresse" Style="{StaticResource TextFieldLabel}" />
+                <Border Style="{StaticResource Field}">
+                    <Entry Text="{Binding Address}" Placeholder="12 rue de Rivoli" SemanticProperties.Description="Adresse" />
+                </Border>
+                <Label Text="{Binding AddressError}" Style="{StaticResource TextError}" IsVisible="{Binding AddressError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <Grid ColumnDefinitions="2*,3*" ColumnSpacing="12">
+                <VerticalStackLayout Spacing="6">
+                    <Label Text="Code postal" Style="{StaticResource TextFieldLabel}" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry Text="{Binding PostalCode}" Placeholder="75001" Keyboard="Numeric" MaxLength="10" SemanticProperties.Description="Code postal" />
+                    </Border>
+                    <Label Text="{Binding PostalCodeError}" Style="{StaticResource TextError}" IsVisible="{Binding PostalCodeError, Converter={StaticResource HasValue}}" />
+                </VerticalStackLayout>
+                <VerticalStackLayout Grid.Column="1" Spacing="6">
+                    <Label Text="Ville *" Style="{StaticResource TextFieldLabel}" />
+                    <Border Style="{StaticResource Field}">
+                        <Entry Text="{Binding City}" Placeholder="Paris" SemanticProperties.Description="Ville" />
+                    </Border>
+                    <Label Text="{Binding CityError}" Style="{StaticResource TextError}" IsVisible="{Binding CityError, Converter={StaticResource HasValue}}" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+            </Border>
+
+            <Grid Margin="0,6,0,0">
+                <Button Text="{Binding SubmitLabel}" Command="{Binding SaveCommand}" IsEnabled="{Binding IsIdle}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="White" HeightRequest="22" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</views:PageBase>

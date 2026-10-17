@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="AutoNexusMobile.Core/AutoNexusMobile.Core.csproj" />
+  <Project Path="AutoNexusMobile.Tests/AutoNexusMobile.Tests.csproj" />
+  <Project Path="AutoNexusMobile/AutoNexusMobile.csproj" />
+</Solution>

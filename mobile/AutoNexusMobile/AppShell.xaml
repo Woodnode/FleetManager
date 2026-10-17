@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!-- Navigation : la connexion, puis les onglets de la barre latérale du web, filtrés selon le
+     rôle (ConfigureFor). Le technicien commence par sa journée ; l'administrateur et le gérant
+     par le tableau de bord et ont les archives. Fiches, formulaires et scan sont poussés
+     par-dessus l'onglet courant (voir AppShell.xaml.cs). -->
+<Shell
+    x:Class="AutoNexusMobile.AppShell"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:AutoNexusMobile.Views"
+    xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+    Title="AutoNexus"
+    FlyoutBehavior="Disabled">
+
+    <ShellContent Title="Connexion" Route="login" FlyoutItemIsVisible="False"
+                  ContentTemplate="{DataTemplate views:LoginPage}" />
+
+    <TabBar Route="main">
+        <ShellContent x:Name="TodayTab" Title="Ma journée" Route="today" ContentTemplate="{DataTemplate views:TodayPage}"
+                      Icon="{FontImageSource Glyph={x:Static icons:Icons.ListChecks}, FontFamily=Lucide, Size=22}" />
+        <ShellContent x:Name="DashboardTab" Title="Dashboard" Route="dashboard" ContentTemplate="{DataTemplate views:DashboardPage}"
+                      Icon="{FontImageSource Glyph={x:Static icons:Icons.Dashboard}, FontFamily=Lucide, Size=22}" />
+        <ShellContent x:Name="VehiclesTab" Title="Véhicules" Route="vehicles" ContentTemplate="{DataTemplate views:VehiclesPage}"
+                      Icon="{FontImageSource Glyph={x:Static icons:Icons.Car}, FontFamily=Lucide, Size=22}" />
+        <ShellContent x:Name="InterventionsTab" Title="Interventions" Route="interventions" ContentTemplate="{DataTemplate views:InterventionsPage}"
+                      Icon="{FontImageSource Glyph={x:Static icons:Icons.Wrench}, FontFamily=Lucide, Size=22}" />
+        <ShellContent x:Name="StoresTab" Title="Enseignes" Route="stores" ContentTemplate="{DataTemplate views:StoresPage}"
+                      Icon="{FontImageSource Glyph={x:Static icons:Icons.Building}, FontFamily=Lucide, Size=22}" />
+        <ShellContent x:Name="ArchivesTab" Title="Archives" Route="archives" ContentTemplate="{DataTemplate views:ArchivesPage}"
+                      Icon="{FontImageSource Glyph={x:Static icons:Icons.Archive}, FontFamily=Lucide, Size=22}" />
+    </TabBar>
+
+</Shell>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Libellés de la barre d'onglets : 12 sp, actif comme inactif, pour que « Interventions »
+     tienne en entier avec cinq onglets. -->
+<resources>
+    <style name="TabLabel" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">12sp</item>
+    </style>
+    <style name="TabLabelActive" parent="TabLabel">
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

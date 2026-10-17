@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Connexion, reprise du panneau de formulaire du web (Login.tsx) : fond slate-950 dans les deux
+     thèmes, logo et marque, champs sombres, bouton au dégradé de marque, comptes de démonstration
+     sous un filet (Debug uniquement). -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.LoginPage"
+                x:DataType="viewmodels:LoginViewModel"
+                BackgroundColor="{StaticResource Night}"
+                Shell.NavBarIsVisible="False"
+                Shell.TabBarIsVisible="False">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="22,40,22,32" Spacing="0" MaximumWidthRequest="440">
+
+            <HorizontalStackLayout Spacing="10" Margin="0,0,0,36">
+                <Image Source="logo.png" WidthRequest="30" HeightRequest="34" VerticalOptions="Center" />
+                <Label Text="AutoNexus" FontFamily="InterSemiBold" FontSize="17" TextColor="White" VerticalOptions="Center" />
+            </HorizontalStackLayout>
+
+            <Label Text="Connexion" FontFamily="InterBold" FontSize="26" TextColor="White" CharacterSpacing="-0.5"
+                   SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="Accédez à votre espace de gestion" FontSize="15" TextColor="{StaticResource NightHint}" Margin="0,4,0,28" />
+
+            <Border Style="{StaticResource InfoBanner}" Margin="0,0,0,18" IsVisible="{Binding Notice, Converter={StaticResource HasValue}}">
+                <Label Text="{Binding Notice}" Style="{StaticResource InfoBannerText}" />
+            </Border>
+
+            <!-- Email -->
+            <Label Text="Email" FontFamily="InterSemiBold" FontSize="12" CharacterSpacing="0.8" TextTransform="Uppercase"
+                   TextColor="{StaticResource NightLabel}" Margin="0,0,0,8" />
+            <Border x:Name="EmailField" StrokeShape="{StaticResource ShapeField}" StrokeThickness="1.5" Stroke="{StaticResource NightLine}"
+                    BackgroundColor="{StaticResource NightField}" Padding="14,0">
+                <Entry x:Name="EmailEntry" Text="{Binding Email}" Placeholder="admin@fleetmanager.fr" Keyboard="Email"
+                       TextColor="White" PlaceholderColor="{StaticResource NightPlaceholder}" IsSpellCheckEnabled="False" IsTextPredictionEnabled="False"
+                       ReturnType="Next" Completed="OnEmailCompleted" Focused="OnFieldFocused" Unfocused="OnFieldUnfocused"
+                       SemanticProperties.Description="Email" />
+            </Border>
+            <Label Text="{Binding EmailError}" FontSize="13" TextColor="#F87171" Margin="0,6,0,0"
+                   IsVisible="{Binding EmailError, Converter={StaticResource HasValue}}" />
+
+            <!-- Mot de passe -->
+            <Label Text="Mot de passe" FontFamily="InterSemiBold" FontSize="12" CharacterSpacing="0.8" TextTransform="Uppercase"
+                   TextColor="{StaticResource NightLabel}" Margin="0,18,0,8" />
+            <Border x:Name="PasswordField" StrokeShape="{StaticResource ShapeField}" StrokeThickness="1.5" Stroke="{StaticResource NightLine}"
+                    BackgroundColor="{StaticResource NightField}" Padding="14,0,4,0">
+                <Grid ColumnDefinitions="*,Auto">
+                    <Entry x:Name="PasswordEntry" Text="{Binding Password}" IsPassword="{Binding IsPasswordHidden}" Placeholder="••••••••"
+                           TextColor="White" PlaceholderColor="{StaticResource NightPlaceholder}"
+                           ReturnType="Go" ReturnCommand="{Binding LoginCommand}" Focused="OnFieldFocused" Unfocused="OnFieldUnfocused"
+                           SemanticProperties.Description="Mot de passe" />
+                    <Button Grid.Column="1" Style="{StaticResource HeaderIconButton}" TextColor="{StaticResource NightLabel}" FontSize="18"
+                            Command="{Binding TogglePasswordCommand}" SemanticProperties.Description="Afficher ou masquer le mot de passe">
+                        <Button.Triggers>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsPasswordHidden}" Value="True">
+                                <Setter Property="Text" Value="{x:Static icons:Icons.Eye}" />
+                            </DataTrigger>
+                            <DataTrigger TargetType="Button" Binding="{Binding IsPasswordHidden}" Value="False">
+                                <Setter Property="Text" Value="{x:Static icons:Icons.EyeOff}" />
+                            </DataTrigger>
+                        </Button.Triggers>
+                    </Button>
+                </Grid>
+            </Border>
+            <Label Text="{Binding PasswordError}" FontSize="13" TextColor="#F87171" Margin="0,6,0,0"
+                   IsVisible="{Binding PasswordError, Converter={StaticResource HasValue}}" />
+
+            <!-- Erreur serveur (rouge à 10 %, comme le web) -->
+            <Border StrokeShape="{StaticResource ShapeField}" StrokeThickness="1" Stroke="#4D1D22" BackgroundColor="#1E0F14"
+                    Padding="14,11" Margin="0,18,0,0" IsVisible="{Binding HasError}">
+                <HorizontalStackLayout Spacing="10">
+                    <Ellipse WidthRequest="6" HeightRequest="6" Fill="#EF4444" VerticalOptions="Center" />
+                    <Label Text="{Binding ErrorMessage}" FontSize="14" TextColor="#F87171" VerticalOptions="Center" />
+                </HorizontalStackLayout>
+            </Border>
+
+            <Grid Margin="0,24,0,0">
+                <Button Text="Se connecter" Command="{Binding LoginCommand}" IsEnabled="{Binding IsIdle}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="White" HeightRequest="22" />
+            </Grid>
+
+            <!-- Comptes de démonstration -->
+            <VerticalStackLayout IsVisible="{Binding ShowDemoAccounts}" Spacing="8" Margin="0,32,0,0">
+                <BoxView HeightRequest="1" Color="#10172A" Margin="0,0,0,18" />
+                <Label Text="Comptes de démo" FontFamily="InterSemiBold" FontSize="11" CharacterSpacing="1.4" TextTransform="Uppercase"
+                       TextColor="{StaticResource NightHint}" Margin="0,0,0,4" />
+                <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding DemoAccounts}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="viewmodels:DemoAccount">
+                            <Border StrokeShape="{StaticResource ShapeField}" StrokeThickness="1" Stroke="#141B2D" BackgroundColor="#0A1020"
+                                    Padding="14,0" HeightRequest="48" SemanticProperties.Description="{Binding Email}">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:LoginViewModel}}, Path=UseDemoCommand, x:DataType=viewmodels:LoginViewModel}"
+                                                          CommandParameter="{Binding .}" />
+                                </Border.GestureRecognizers>
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                    <Border StrokeShape="RoundRectangle 4" BackgroundColor="#161E45" Padding="6,2" VerticalOptions="Center">
+                                        <Label Text="{Binding Role}" FontFamily="InterMedium" FontSize="11" CharacterSpacing="0.6" TextTransform="Uppercase"
+                                               TextColor="{StaticResource Brand400}" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="{Binding Email}" FontFamily="monospace" FontSize="12" TextColor="{StaticResource NightPlaceholder}"
+                                           HorizontalTextAlignment="End" VerticalOptions="Center" LineBreakMode="TailTruncation" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+                <Label FontSize="12" TextColor="{StaticResource NightHint}" Margin="0,4,0,0">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="Mot de passe : " />
+                            <Span Text="{Binding DemoPasswordText}" FontFamily="monospace" TextColor="{StaticResource NightLabel}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+            </VerticalStackLayout>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</views:PageBase>
