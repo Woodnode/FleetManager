@@ -55,6 +55,21 @@ public class InterventionRepository : IInterventionRepository
             .Where(i => i.StoreId == storeId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Intervention>> GetTechnicianAgendaAsync(
+        Guid technicianId, Guid storeId, DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default)
+        => await _context.Interventions
+            .Include(i => i.Vehicle)
+            .Include(i => i.Store)
+            .Include(i => i.Technician)
+            .Where(i => i.TechnicianId == technicianId && i.StoreId == storeId)
+            .Where(i =>
+                (i.PlannedStartDate < toUtc && i.PlannedEndDate >= fromUtc) ||
+                (i.PlannedEndDate < fromUtc &&
+                 (i.Status == InterventionStatus.Planned || i.Status == InterventionStatus.InProgress)))
+            .OrderBy(i => i.PlannedStartDate)
+            .ThenBy(i => i.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Intervention>> GetRecentAsync(Guid? storeId, int count, CancellationToken cancellationToken = default)
     {
         var query = _context.Interventions

@@ -12,7 +12,8 @@ namespace FleetManager.Application.Interventions.Commands;
 public record ChangeInterventionStatusCommand(
     Guid InterventionId,
     InterventionStatus NewStatus,
-    string? Comment = null) : IRequest<Result<InterventionDto>>;
+    string? Comment = null,
+    int? Mileage = null) : IRequest<Result<InterventionDto>>;
 
 public class ChangeInterventionStatusCommandHandler : IRequestHandler<ChangeInterventionStatusCommand, Result<InterventionDto>>
 {
@@ -76,6 +77,9 @@ public class ChangeInterventionStatusCommandHandler : IRequestHandler<ChangeInte
                 var vehicle = await _vehicleRepository.GetByIdAsync(intervention.VehicleId, cancellationToken);
                 if (vehicle is not null)
                 {
+                    if (request.NewStatus == InterventionStatus.Completed && request.Mileage is { } mileage)
+                        vehicle.RecordMileage(mileage);
+
                     vehicle.ChangeStatus(VehicleStatus.Available);
                     _vehicleRepository.Update(vehicle);
                 }
