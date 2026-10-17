@@ -72,6 +72,23 @@ public class GetMyInterventionsQueryTests
     }
 
     [Fact]
+    public async Task EtantDonneBornesSansFuseau_QuandMesInterventions_AlorsCompareesTellesQuelles()
+    {
+        // Le mobile envoie le début et la fin de sa journée en heure murale, comme les dates stockées.
+        ActAs(UserRole.Technician);
+        var from = new DateTime(2026, 10, 17, 0, 0, 0, DateTimeKind.Unspecified);
+        var to   = from.AddDays(1);
+        _repo.Setup(r => r.GetTechnicianAgendaAsync(UserId, StoreId, It.IsAny<DateTime>(), It.IsAny<DateTime>(), default))
+             .ReturnsAsync(Array.Empty<Intervention>());
+
+        await BuildHandler().Handle(new GetMyInterventionsQuery(from, to), default);
+
+        _repo.Verify(r => r.GetTechnicianAgendaAsync(UserId, StoreId,
+            It.Is<DateTime>(d => d == new DateTime(2026, 10, 17, 0, 0, 0)),
+            It.Is<DateTime>(d => d == new DateTime(2026, 10, 18, 0, 0, 0)), default), Times.Once);
+    }
+
+    [Fact]
     public async Task EtantDonneFinAvantDebut_QuandMesInterventions_AlorsErreurDeValidation()
     {
         ActAs(UserRole.Technician);

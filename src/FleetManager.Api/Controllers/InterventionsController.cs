@@ -33,7 +33,8 @@ public class InterventionsController : ApiControllerBase
 
     /// <summary>
     /// Journée du technicien connecté : ses interventions prévues entre <paramref name="from"/> et
-    /// <paramref name="to"/> (instants UTC, par défaut le jour UTC courant, 7 jours au plus) et
+    /// <paramref name="to"/> (heures murales comme les dates stockées, par défaut le jour UTC
+    /// courant, 7 jours au plus) et
     /// celles encore ouvertes dont la fin prévue est passée.
     /// </summary>
     [HttpGet("mine")]

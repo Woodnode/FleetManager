@@ -7,8 +7,8 @@ using MediatR;
 namespace FleetManager.Application.Interventions.Queries;
 
 /// <summary>
-/// Interventions confiées au technicien connecté sur une période (sa journée, vue de son fuseau),
-/// plus celles encore ouvertes dont la fin prévue est passée.
+/// Interventions confiées au technicien connecté sur une période (sa journée), plus celles encore
+/// ouvertes dont la fin prévue est passée.
 /// </summary>
 public record GetMyInterventionsQuery(DateTime? FromUtc = null, DateTime? ToUtc = null) : IRequest<Result<IReadOnlyList<InterventionDto>>>;
 
@@ -31,8 +31,8 @@ public class GetMyInterventionsQueryHandler : IRequestHandler<GetMyInterventions
         if (_currentUser.Role != UserRole.Technician || !_currentUser.UserId.HasValue || !_currentUser.StoreId.HasValue)
             return Result.Failure<IReadOnlyList<InterventionDto>>(Error.Forbidden("Réservé aux techniciens."));
 
-        var from = request.FromUtc is { } f ? DateTime.SpecifyKind(f.ToUniversalTime(), DateTimeKind.Utc) : DateTime.UtcNow.Date;
-        var to   = request.ToUtc   is { } t ? DateTime.SpecifyKind(t.ToUniversalTime(), DateTimeKind.Utc) : from.AddDays(1);
+        var from = request.FromUtc is { } f ? Normalize(f) : DateTime.UtcNow.Date;
+        var to   = request.ToUtc   is { } t ? Normalize(t) : from.AddDays(1);
 
         if (to <= from)
             return Result.Failure<IReadOnlyList<InterventionDto>>(Error.Validation("La fin de la période doit suivre son début."));
@@ -44,4 +44,12 @@ public class GetMyInterventionsQueryHandler : IRequestHandler<GetMyInterventions
 
         return Result.Success<IReadOnlyList<InterventionDto>>(entities.Select(InterventionDto.FromEntity).ToList().AsReadOnly());
     }
+
+    // Les dates sont stockées sans fuseau et lues telles quelles par les clients (heure murale).
+    // Une borne sans fuseau est donc comparée telle quelle ; une borne avec fuseau (« Z », que
+    // la liaison de modèle convertit en heure locale du serveur) est ramenée en UTC.
+    private static DateTime Normalize(DateTime value) =>
+        value.Kind == DateTimeKind.Local
+            ? DateTime.SpecifyKind(value.ToUniversalTime(), DateTimeKind.Utc)
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
 }
