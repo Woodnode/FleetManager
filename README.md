@@ -177,10 +177,9 @@ On the login page, click any role card to auto-fill the credentials.
 
 `mobile/AutoNexusMobile` is the Android/iOS companion app, built on the same API and the same visual identity as the web client (Inter, Lucide icons, `#4c6ef5` brand, light and dark themes).
 
-- **Every web screen**, adapted to the phone: dashboard, vehicles, interventions, stores, archives, each limited to what the user's role may do.
-- **Technician flow**: "Ma journée" lists today's assignments and overdue ones; an intervention card starts or completes the job (closing comment and odometer reading, which updates the vehicle).
-- **VIN scanner** (ZXing.Net.MAUI): reading the door-jamb or windscreen barcode opens the vehicle; manual entry is available when the label is unreadable.
-- **Live updates** through the SignalR hub, like the web client.
+It covers the web screens (dashboard, vehicles, interventions, stores, archives), each limited to what the user's role may do. Technicians start on "Ma journée", which lists today's assignments and the overdue ones. From an intervention they start or close the job; closing asks for a comment and the odometer reading, which updates the vehicle.
+
+Scanning the VIN barcode on the door jamb or windscreen (ZXing.Net.MAUI) opens the vehicle, and the VIN can be typed when the label is unreadable. Changes made elsewhere show up live through the SignalR hub, as in the web client.
 
 The app sends `X-Client: mobile` on authentication calls: the API then returns the tokens in the response body (the browser keeps its httpOnly cookies). `mobile/AutoNexusMobile.Core` holds the API client, session and business rules; it is tested by `mobile/AutoNexusMobile.Tests` without the MAUI workload.
 
