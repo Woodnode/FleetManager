@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Logo du web (client/src/components/ui/LogoIcon.tsx) : hexagone dégradé et compteur.
+     Android ne montre d'une icône adaptative que le disque central : le logo en occupe 52 %. -->
+<svg width="456" height="456" viewBox="-17.3 -17.3 70.6 70.6" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="4" y1="2" x2="32" y2="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4C6EF5" />
+      <stop offset="1" stop-color="#6366F1" />
+    </linearGradient>
+  </defs>
+  <path d="M18 2 L32 10 L32 26 L18 34 L4 26 L4 10 Z" fill="url(#g)" />
+  <path d="M18 4.5 L29.5 11 L29.5 25 L18 31.5 L6.5 25 L6.5 11 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.15" stroke-width="1" />
+  <path d="M11 24 A7 7 0 0 1 25 24" fill="none" stroke="#FFFFFF" stroke-opacity="0.45" stroke-width="1.8" stroke-linecap="round" />
+  <path d="M11 24 A7 7 0 0 1 21.5 17.5" fill="none" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" />
+  <path d="M11 24 L12.2 24" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1.2" stroke-linecap="round" />
+  <path d="M25 24 L23.8 24" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1.2" stroke-linecap="round" />
+  <path d="M18 17 L18 18.2" stroke="#FFFFFF" stroke-opacity="0.5" stroke-width="1.2" stroke-linecap="round" />
+  <line x1="18" y1="24" x2="14.2" y2="18.2" stroke="#FFFFFF" stroke-width="1.6" stroke-linecap="round" />
+  <circle cx="18" cy="24" r="1.6" fill="#FFFFFF" />
+</svg>

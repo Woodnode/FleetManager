@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Nouvelle intervention : véhicule (recherche parmi les disponibles), technicien de son
+     enseigne, type, jour, heure et durée en puces avec le créneau résumé, commentaire. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.InterventionFormPage"
+                x:DataType="viewmodels:InterventionFormViewModel"
+                Title="Nouvelle intervention">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16,20,16,32" Spacing="18">
+
+            <!-- Véhicule -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Véhicule *" Style="{StaticResource TextFieldLabel}" />
+                <Border Style="{StaticResource Card}" Padding="14,12" IsVisible="{Binding HasVehicle}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <Border Style="{StaticResource IconTile}" WidthRequest="36" HeightRequest="36">
+                            <Label Text="{x:Static icons:Icons.Car}" Style="{StaticResource IconAccent}" FontSize="16" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                            <Label Text="{Binding VehicleName}" Style="{StaticResource TextStrong}" />
+                            <Label Text="{Binding Vehicle.Vin}" Style="{StaticResource TextMono}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Button Grid.Column="2" Text="Changer" Style="{StaticResource GhostButton}" Command="{Binding ChangeVehicleCommand}" />
+                    </Grid>
+                </Border>
+                <VerticalStackLayout Spacing="8" IsVisible="{Binding HasVehicle, Converter={StaticResource InvertedBool}}">
+                    <Border Style="{StaticResource Field}">
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <Label Text="{x:Static icons:Icons.Search}" Style="{StaticResource IconMuted}" FontSize="16" />
+                            <Entry Grid.Column="1" Text="{Binding VehicleSearch}" Placeholder="VIN, marque, modèle..." IsSpellCheckEnabled="False"
+                                   SemanticProperties.Description="Rechercher un véhicule disponible" />
+                        </Grid>
+                    </Border>
+                    <Label Text="Véhicules disponibles" Style="{StaticResource TextOverline}" Margin="2,4,0,0" />
+                    <VerticalStackLayout Spacing="8" BindableLayout.ItemsSource="{Binding VehicleResults}">
+                        <BindableLayout.EmptyView>
+                            <Label Text="Aucun véhicule disponible" Style="{StaticResource TextMeta}" />
+                        </BindableLayout.EmptyView>
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate x:DataType="viewmodels:VehicleItem">
+                                <Border Style="{StaticResource Inset}" Padding="12,10" SemanticProperties.Description="{Binding Name}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Command="{Binding BindingContext.PickVehicleCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}, x:DataType=ContentPage}"
+                                                              CommandParameter="{Binding .}" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout>
+                                            <Label Text="{Binding Name}" Style="{StaticResource TextStrong}" FontSize="14" />
+                                            <Label Text="{Binding Dto.Vin}" Style="{StaticResource TextMono}" FontSize="12" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding Dto.StoreName}" Style="{StaticResource TextMeta}" FontSize="12" VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+                <Label Text="{Binding VehicleError}" Style="{StaticResource TextError}" IsVisible="{Binding VehicleError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <!-- Technicien -->
+            <VerticalStackLayout Spacing="8" IsVisible="{Binding HasVehicle}">
+                <Label Text="Technicien *" Style="{StaticResource TextFieldLabel}" />
+                <FlexLayout Wrap="Wrap" BindableLayout.ItemsSource="{Binding TechnicianChoices}" BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                <Label Text="Aucun technicien dans cette enseigne" Style="{StaticResource TextMeta}" IsVisible="{Binding HasNoTechnician}" />
+                <Label Text="{Binding TechnicianError}" Style="{StaticResource TextError}" IsVisible="{Binding TechnicianError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <!-- Type -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Type" Style="{StaticResource TextFieldLabel}" />
+                <FlexLayout Wrap="Wrap" BindableLayout.ItemsSource="{Binding TypeChoices}" BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+            </VerticalStackLayout>
+
+            <!-- Créneau -->
+            <VerticalStackLayout Spacing="8">
+                <Label Text="Début" Style="{StaticResource TextFieldLabel}" />
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout BindableLayout.ItemsSource="{Binding DayChoices}" BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                </ScrollView>
+                <ScrollView Orientation="Horizontal" HorizontalScrollBarVisibility="Never">
+                    <HorizontalStackLayout BindableLayout.ItemsSource="{Binding TimeChoices}" BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                </ScrollView>
+                <Label Text="Durée" Style="{StaticResource TextFieldLabel}" Margin="0,6,0,0" />
+                <FlexLayout Wrap="Wrap" BindableLayout.ItemsSource="{Binding DurationChoices}" BindableLayout.ItemTemplate="{StaticResource ChipTemplate}" />
+                <Border Style="{StaticResource InfoBanner}">
+                    <HorizontalStackLayout Spacing="8">
+                        <Label Text="{x:Static icons:Icons.CalendarClock}" Style="{StaticResource IconAccent}" FontSize="16" />
+                        <Label Text="{Binding Summary}" Style="{StaticResource InfoBannerText}" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+                </Border>
+                <Label Text="{Binding DateError}" Style="{StaticResource TextError}" IsVisible="{Binding DateError, Converter={StaticResource HasValue}}" />
+            </VerticalStackLayout>
+
+            <!-- Commentaire -->
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Commentaire" Style="{StaticResource TextFieldLabel}" />
+                <Border Style="{StaticResource Field}" Padding="10,4">
+                    <Editor Text="{Binding Comment}" Placeholder="Description optionnelle..." MaxLength="1000" SemanticProperties.Description="Commentaire" />
+                </Border>
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+            </Border>
+
+            <Grid>
+                <Button Text="Créer l'intervention" Command="{Binding SaveCommand}" IsEnabled="{Binding IsIdle}" />
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="White" HeightRequest="22" />
+            </Grid>
+        </VerticalStackLayout>
+    </ScrollView>
+
+</views:PageBase>

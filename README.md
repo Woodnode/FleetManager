@@ -170,11 +170,29 @@ All accounts share the same password, `Fleet@2024`.
 
 The database seeder creates these accounts, along with 3 branches, 12 vehicles and 6 interventions in various states. On the login page, clicking a role card fills in its credentials.
 
+## Mobile app (.NET MAUI)
+
+`mobile/AutoNexusMobile` is the Android and iOS companion app. It uses the same API and the same visual identity as the web client (Inter, Lucide icons, `#4c6ef5` brand, light and dark themes).
+
+It covers the web screens (dashboard, vehicles, interventions, stores, archives), each limited to what the user's role may do. Technicians start on "Ma journée", which lists today's assignments and the overdue ones. From an intervention they start or close the job; closing asks for a comment and the odometer reading, which updates the vehicle.
+
+Scanning the VIN barcode on the door jamb or windscreen (ZXing.Net.MAUI) opens the vehicle, and the VIN can be typed when the label is unreadable. Changes made elsewhere show up live through the SignalR hub, as in the web client.
+
+The app sends `X-Client: mobile` on authentication calls, and the API then returns the tokens in the response body (the browser keeps its httpOnly cookies). `mobile/AutoNexusMobile.Core` holds the API client, the session and the business rules; `mobile/AutoNexusMobile.Tests` tests it without the MAUI workload.
+
+```bash
+# Android emulator, against the local API (http profile, port 5290, reached through 10.0.2.2)
+dotnet build mobile/AutoNexusMobile -t:Install -f net10.0-android -c Debug
+```
+
+The login screen offers the demo accounts in Debug builds only. A Release build needs the API host at compile time: `dotnet publish -p:AutoNexusApiHost=https://...`. Fonts and icons are regenerated from the web packages with `mobile/AutoNexusMobile/scripts/generer_ressources.py`.
+
 ## Running tests
 
 ```bash
-cd tests/FleetManager.Tests
-dotnet test
+dotnet test FleetManager.sln                          # API, domain, application, integration
+dotnet test mobile/AutoNexusMobile.Tests              # mobile core (.NET 10)
+cd client && npm run lint && npx tsc -b && npm test   # web client
 ```
 
 ## API documentation
@@ -192,7 +210,8 @@ Main endpoints:
 | POST | `/api/v1/vehicles` | Create vehicle |
 | PATCH | `/api/v1/vehicles/{id}/status` | Change vehicle status |
 | GET | `/api/v1/interventions` | List interventions (paginated, filterable) |
+| GET | `/api/v1/interventions/mine` | Technician's day: assigned interventions and overdue open ones |
 | POST | `/api/v1/interventions` | Create intervention |
-| PATCH | `/api/v1/interventions/{id}/status` | Advance intervention status |
+| PATCH | `/api/v1/interventions/{id}/status` | Start, complete (optional odometer reading) or cancel |
 | GET | `/api/v1/stores` | List all branches |
 | GET | `/health` | Health check |

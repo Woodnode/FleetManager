@@ -36,6 +36,23 @@ jobs:
           name: backend-test-results
           path: ./TestResults/*.trx
 
+  # ─── Noyau de l'application mobile ──────────────────────────────────────────
+  # Client de l'API, session et règles de l'app MAUI : un simple net10.0, sans workload MAUI.
+  mobile-core:
+    name: Mobile — tests du noyau
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.x"
+
+      - name: Test
+        run: dotnet test mobile/AutoNexusMobile.Tests -c Release
+
   # ─── Migrations PostgreSQL ───────────────────────────────────────────────────
   # Les tests tournent sur SQLite : ce job vérifie que les migrations s'appliquent
   # réellement sur PostgreSQL et qu'aucun changement de modèle n'a été oublié.

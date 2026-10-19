@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Noyau de l'application mobile, sans dépendance à MAUI : client de l'API, session,
+       temps réel et règles d'affichage. Testé par AutoNexusMobile.Tests sur un simple net10.0. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="AutoNexusMobile.Tests" />
+  </ItemGroup>
+
+</Project>

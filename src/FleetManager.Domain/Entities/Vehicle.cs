@@ -82,6 +82,15 @@ public class Vehicle : ISoftDeletable
         StoreId = storeId;
     }
 
+    // Relevé du compteur en fin d'intervention : il ne peut que monter.
+    public void RecordMileage(int mileage)
+    {
+        if (mileage < Mileage)
+            throw new DomainException($"Le kilométrage relevé ({mileage}) est inférieur au kilométrage connu ({Mileage}).");
+
+        Mileage = mileage;
+    }
+
     public void ChangeStatus(VehicleStatus newStatus)
     {
         if (Status == VehicleStatus.Sold)

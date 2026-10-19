@@ -4,6 +4,7 @@ using FluentAssertions;
 
 namespace FleetManager.Tests.Integration;
 
+[Collection(ApiHostCollection.Name)]
 public class AuthIntegrationTests : IClassFixture<FleetManagerWebAppFactory>
 {
     private readonly HttpClient _client;

@@ -31,6 +31,26 @@ public class InterventionsController : ApiControllerBase
         return result.IsSuccess ? Ok(result.Value) : MapError(result.Error!);
     }
 
+    /// <summary>
+    /// Journée du technicien connecté : ses interventions prévues entre <paramref name="from"/> et
+    /// <paramref name="to"/> (heures murales comme les dates stockées, par défaut le jour UTC
+    /// courant, 7 jours au plus) et
+    /// celles encore ouvertes dont la fin prévue est passée.
+    /// </summary>
+    [HttpGet("mine")]
+    [Authorize(Roles = "Technician")]
+    [ProducesResponseType(typeof(IReadOnlyList<InterventionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> GetMine(
+        [FromQuery] DateTime? from = null,
+        [FromQuery] DateTime? to = null,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(new GetMyInterventionsQuery(from, to), cancellationToken);
+        return result.IsSuccess ? Ok(result.Value) : MapError(result.Error!);
+    }
+
     /// <summary>Récupère une intervention par son identifiant.</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(InterventionDto), StatusCodes.Status200OK)]
@@ -75,7 +95,7 @@ public class InterventionsController : ApiControllerBase
             : MapError(result.Error!);
     }
 
-    /// <summary>Modifie le statut d'une intervention.</summary>
+    /// <summary>Modifie le statut d'une intervention. À la clôture, le kilométrage relevé met à jour le véhicule.</summary>
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(typeof(InterventionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -84,7 +104,7 @@ public class InterventionsController : ApiControllerBase
     public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeInterventionStatusRequest request, CancellationToken cancellationToken)
     {
         var result = await _mediator.Send(
-            new ChangeInterventionStatusCommand(id, request.NewStatus, request.Comment),
+            new ChangeInterventionStatusCommand(id, request.NewStatus, request.Comment, request.Mileage),
             cancellationToken);
 
         return result.IsSuccess

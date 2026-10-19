@@ -14,6 +14,9 @@ public interface IInterventionRepository
     Task<(IReadOnlyList<Intervention> Items, int TotalCount)> GetPagedAsync(Guid? storeId, int skip, int take, string? status = null, string? type = null, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Intervention>> GetByVehicleIdAsync(Guid vehicleId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Intervention>> GetByStoreIdAsync(Guid storeId, CancellationToken cancellationToken = default);
+    // Journée d'un technicien : ses interventions prévues sur la période, et celles encore ouvertes
+    // dont la fin prévue est déjà passée (en retard).
+    Task<IReadOnlyList<Intervention>> GetTechnicianAgendaAsync(Guid technicianId, Guid storeId, DateTime fromUtc, DateTime toUtc, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Intervention>> GetRecentAsync(Guid? storeId, int count, CancellationToken cancellationToken = default);
     Task<InterventionSummaryCounts> GetSummaryCountsAsync(Guid? storeId, CancellationToken cancellationToken = default);
     Task<bool> ExistsByVehicleIdAsync(Guid vehicleId, CancellationToken cancellationToken = default);

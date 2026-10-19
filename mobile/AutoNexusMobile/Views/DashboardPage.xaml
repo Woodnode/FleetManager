@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Tableau de bord (Dashboard.tsx à 375 px) : titre et pastille temps réel, quatre indicateurs
+     en grille 2 × 2, répartition du parc en anneau, interventions par type en barres, et les six
+     dernières interventions en liste. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:controls="clr-namespace:AutoNexusMobile.Controls"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.DashboardPage"
+                x:DataType="viewmodels:DashboardViewModel"
+                Shell.NavBarIsVisible="False"
+                BackgroundColor="{StaticResource Sidebar}">
+
+    <!-- Fond de page sous l'en-tête : la page elle-même garde le sombre de l'en-tête, qui
+         remplit la zone de la barre d'état. -->
+    <Grid RowDefinitions="Auto,*" BackgroundColor="{AppThemeBinding Light={StaticResource PageLight}, Dark={StaticResource PageDark}}">
+        <controls:AppHeader />
+
+        <RefreshView Grid.Row="1" Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Padding="16,20,16,28" Spacing="16">
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout>
+                            <Label Text="Tableau de bord" Style="{StaticResource TextDisplay}" SemanticProperties.HeadingLevel="Level1" />
+                            <Label Text="Vue d'ensemble du parc auto" Style="{StaticResource TextMeta}" FontSize="14" />
+                        </VerticalStackLayout>
+                        <controls:RealtimeBadge Grid.Column="1" />
+                    </Grid>
+
+                    <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                        <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+                    </Border>
+
+                    <!-- Squelette -->
+                    <Grid IsVisible="{Binding IsLoading}" ColumnDefinitions="*,*" RowDefinitions="140,140,240" ColumnSpacing="12" RowSpacing="12">
+                        <BoxView CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        <BoxView Grid.Column="1" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        <BoxView Grid.Row="1" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        <BoxView Grid.Row="1" Grid.Column="1" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        <BoxView Grid.Row="2" Grid.ColumnSpan="2" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                    </Grid>
+
+                    <VerticalStackLayout Spacing="16" IsVisible="{Binding IsReady}">
+                        <!-- Indicateurs -->
+                        <FlexLayout Wrap="Wrap" JustifyContent="SpaceBetween" BindableLayout.ItemsSource="{Binding Kpis}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="viewmodels:KpiItem">
+                                    <controls:KpiCard FlexLayout.Basis="48.5%" Margin="0,0,0,12" />
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+
+                        <!-- Répartition du parc -->
+                        <Border Style="{StaticResource Card}" Margin="0,-12,0,0">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Répartition du parc" Style="{StaticResource TextTitle}" FontSize="15" />
+                                <Label Text="{Binding FleetCaption}" Style="{StaticResource TextMeta}" FontSize="12" Margin="0,0,0,12" />
+                                <Grid ColumnDefinitions="150,*" ColumnSpacing="16">
+                                    <controls:DonutChart x:Name="FleetChart" Slices="{Binding FleetSlices}" HeightRequest="150" WidthRequest="150"
+                                                         SemanticProperties.Description="{Binding FleetCaption}" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="10" VerticalOptions="Center" BindableLayout.ItemsSource="{Binding FleetLegend}">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="viewmodels:LegendItem">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <Ellipse WidthRequest="8" HeightRequest="8" Fill="{Binding Color}" VerticalOptions="Center" />
+                                                    <Label Grid.Column="1" Text="{Binding Label}" Style="{StaticResource TextBody}" FontSize="13" />
+                                                    <Label Grid.Column="2" Text="{Binding Value}" Style="{StaticResource TextStrong}" FontSize="13" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Interventions par type -->
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="Interventions par type" Style="{StaticResource TextTitle}" FontSize="15" />
+                                <Label Text="{Binding TypesCaption}" Style="{StaticResource TextMeta}" FontSize="12" Margin="0,0,0,12" />
+                                <controls:BarChart Slices="{Binding TypeSlices}" HeightRequest="190" SemanticProperties.Description="{Binding TypesCaption}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Interventions récentes -->
+                        <Border Style="{StaticResource Card}" Padding="0">
+                            <VerticalStackLayout>
+                                <VerticalStackLayout Padding="16,14">
+                                    <Label Text="Interventions récentes" Style="{StaticResource TextTitle}" FontSize="15" />
+                                    <Label Text="Les 6 dernières activités" Style="{StaticResource TextMeta}" FontSize="12" />
+                                </VerticalStackLayout>
+                                <BoxView Style="{StaticResource Divider}" />
+                                <Label Text="Aucune intervention enregistrée" Style="{StaticResource TextMeta}" HorizontalTextAlignment="Center"
+                                       Padding="16,30" IsVisible="{Binding HasRecent, Converter={StaticResource InvertedBool}}" />
+                                <VerticalStackLayout BindableLayout.ItemsSource="{Binding Recent}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="viewmodels:RecentItem">
+                                            <VerticalStackLayout>
+                                                <VerticalStackLayout Padding="16,13" Spacing="7" SemanticProperties.Description="{Binding Vehicle}">
+                                                    <VerticalStackLayout.GestureRecognizers>
+                                                        <TapGestureRecognizer Command="{Binding BindingContext.OpenRecentCommand, Source={RelativeSource AncestorType={x:Type ContentPage}}, x:DataType=ContentPage}"
+                                                                              CommandParameter="{Binding .}" />
+                                                    </VerticalStackLayout.GestureRecognizers>
+                                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                        <Label Text="{Binding Vehicle}" FontFamily="InterMedium" FontSize="14" LineBreakMode="TailTruncation" />
+                                                        <Label Grid.Column="1" Text="{Binding Date}" Style="{StaticResource TextMeta}" FontSize="12" />
+                                                    </Grid>
+                                                    <HorizontalStackLayout Spacing="6">
+                                                        <controls:StatusBadge Value="{Binding Dto.Type}" Text="{Binding Dto.TypeLabel}" />
+                                                        <controls:StatusBadge Value="{Binding Dto.Status}" Text="{Binding Dto.StatusLabel}" />
+                                                    </HorizontalStackLayout>
+                                                    <Label Text="{Binding People}" Style="{StaticResource TextMeta}" FontSize="12" LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                                <BoxView Style="{StaticResource Divider}" />
+                                            </VerticalStackLayout>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+    </Grid>
+
+</views:PageBase>

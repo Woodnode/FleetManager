@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Scan du NIV : caméra plein cadre avec une fenêtre de visée allongée (le NIV est un code
+     linéaire), puis une feuille du bas pour la saisie manuelle, le NIV inconnu ou l'erreur. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                xmlns:zxing="clr-namespace:ZXing.Net.Maui.Controls;assembly=ZXing.Net.MAUI.Controls"
+                x:Class="AutoNexusMobile.Views.ScanPage"
+                x:DataType="viewmodels:ScanViewModel"
+                Title="Scanner un NIV"
+                Shell.TabBarIsVisible="False"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+
+    <Grid RowDefinitions="*,Auto">
+
+        <!-- Caméra -->
+        <Grid BackgroundColor="Black">
+            <zxing:CameraBarcodeReaderView x:Name="BarcodeView" IsVisible="{Binding IsCameraAllowed}"
+                                           IsDetecting="{Binding IsDetecting}" BarcodesDetected="OnBarcodesDetected" />
+
+            <!-- Fenêtre de visée -->
+            <Grid IsVisible="{Binding IsCameraAllowed}" InputTransparent="True" RowDefinitions="*,Auto,Auto,*">
+                <Border Grid.Row="1" StrokeShape="RoundRectangle 14" StrokeThickness="2" Stroke="White" HeightRequest="120" Margin="28,0"
+                        BackgroundColor="Transparent" />
+                <Label Grid.Row="2" Text="Cadrez le code-barres du NIV (montant de porte, pare-brise)" TextColor="White" FontSize="14"
+                       HorizontalTextAlignment="Center" Margin="32,16,32,0" />
+            </Grid>
+
+            <!-- Caméra refusée -->
+            <VerticalStackLayout IsVisible="{Binding IsCameraAllowed, Converter={StaticResource InvertedBool}}" Padding="32" Spacing="14" VerticalOptions="Center">
+                <Label Text="{x:Static icons:Icons.Camera}" Style="{StaticResource Icon}" FontSize="40" TextColor="White" />
+                <Label Text="L'accès à la caméra est refusé. Autorisez-le dans les réglages, ou saisissez le NIV ci-dessous."
+                       TextColor="{StaticResource SidebarMuted}" FontSize="14" HorizontalTextAlignment="Center" />
+                <Button Text="Ouvrir les réglages" Style="{StaticResource SecondaryButton}" HorizontalOptions="Center" Command="{Binding OpenSettingsCommand}" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <!-- Saisie et résultat -->
+        <Border Grid.Row="1" StrokeThickness="0" StrokeShape="RoundRectangle 20,20,0,0" Margin="0,-20,0,0" Padding="16,20,16,24"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+            <VerticalStackLayout Spacing="10">
+
+                <!-- NIV inconnu -->
+                <Border Style="{StaticResource InfoBanner}" IsVisible="{Binding HasUnknownVin}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Style="{StaticResource InfoBannerText}">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="Aucun véhicule du parc ne porte le NIV " />
+                                    <Span Text="{Binding UnknownVin}" FontFamily="monospace" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button Text="Scanner à nouveau" Style="{StaticResource SecondaryButton}" Command="{Binding ScanAgainCommand}">
+                                <Button.Triggers>
+                                    <DataTrigger TargetType="Button" Binding="{Binding CanAddUnknown}" Value="False">
+                                        <Setter Property="Grid.ColumnSpan" Value="2" />
+                                    </DataTrigger>
+                                </Button.Triggers>
+                            </Button>
+                            <Button Grid.Column="1" Text="L'ajouter" Command="{Binding AddUnknownCommand}" IsVisible="{Binding CanAddUnknown}" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="Saisir le NIV" Style="{StaticResource TextFieldLabel}" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Border Style="{StaticResource Field}">
+                        <Entry x:Name="ManualEntry" Text="{Binding ManualVin}" Placeholder="Ex: VF1RFD00X67891234" FontFamily="monospace" MaxLength="17"
+                               IsSpellCheckEnabled="False" IsTextPredictionEnabled="False"
+                               ReturnType="Search" ReturnCommand="{Binding SearchManualCommand}"
+                               SemanticProperties.Description="Numéro d'identification du véhicule" />
+                    </Border>
+                    <Button Grid.Column="1" Text="Ouvrir" Command="{Binding SearchManualCommand}" IsEnabled="{Binding IsIdle}" />
+                </Grid>
+
+                <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                    <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+                </Border>
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HeightRequest="24" />
+            </VerticalStackLayout>
+        </Border>
+
+    </Grid>
+
+</views:PageBase>

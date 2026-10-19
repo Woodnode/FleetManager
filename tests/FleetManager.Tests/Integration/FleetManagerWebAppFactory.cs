@@ -7,6 +7,17 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FleetManager.Tests.Integration;
 
+/// <summary>
+/// Les classes qui démarrent l'API partagent cette collection : xUnit les exécute l'une après
+/// l'autre. En parallèle, deux hôtes remplacent puis figent le même journal Serilog statique
+/// (« The logger is already frozen »).
+/// </summary>
+[CollectionDefinition(Name)]
+public sealed class ApiHostCollection
+{
+    public const string Name = "Hôte API";
+}
+
 public class FleetManagerWebAppFactory : WebApplicationFactory<Program>
 {
     // Keep the connection open for the lifetime of the factory so the in-memory SQLite DB persists.

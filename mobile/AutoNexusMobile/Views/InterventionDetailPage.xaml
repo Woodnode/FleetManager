@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Fiche d'intervention : véhicule (vers sa fiche), badges, créneau, technicien et enseigne,
+     commentaire, et en bas de l'écran l'action à faire (Commencer ou Terminer), Annuler en
+     second, à portée de pouce. -->
+<views:PageBase xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+                xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+                xmlns:views="clr-namespace:AutoNexusMobile.Views"
+                xmlns:controls="clr-namespace:AutoNexusMobile.Controls"
+                xmlns:viewmodels="clr-namespace:AutoNexusMobile.ViewModels"
+                xmlns:icons="clr-namespace:AutoNexusMobile.Resources"
+                x:Class="AutoNexusMobile.Views.InterventionDetailPage"
+                x:DataType="viewmodels:InterventionDetailViewModel"
+                Title="Intervention">
+
+    <Grid RowDefinitions="*,Auto">
+        <RefreshView Command="{Binding RefreshCommand}" IsRefreshing="{Binding IsRefreshing}">
+            <ScrollView>
+                <VerticalStackLayout Padding="16,18,16,24" Spacing="14">
+
+                    <Border Style="{StaticResource ErrorBanner}" IsVisible="{Binding HasError}">
+                        <Label Text="{Binding ErrorMessage}" Style="{StaticResource ErrorBannerText}" />
+                    </Border>
+
+                    <VerticalStackLayout IsVisible="{Binding IsLoading}" Spacing="12">
+                        <BoxView HeightRequest="96" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                        <BoxView HeightRequest="200" CornerRadius="14" Color="{AppThemeBinding Light={StaticResource TrackLight}, Dark={StaticResource TrackDark}}" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="14" IsVisible="{Binding HasIntervention}">
+                        <!-- Véhicule -->
+                        <Border Style="{StaticResource Card}" SemanticProperties.Description="Ouvrir la fiche du véhicule">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding OpenVehicleCommand}" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                                <Border Style="{StaticResource IconTile}" WidthRequest="46" HeightRequest="46">
+                                    <Label Text="{x:Static icons:Icons.Car}" Style="{StaticResource IconAccent}" FontSize="21" />
+                                </Border>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                    <Label Text="{Binding Vehicle}" Style="{StaticResource TextDisplay}" FontSize="19" SemanticProperties.HeadingLevel="Level1" />
+                                    <Label Text="{Binding Intervention.VehicleVin}" Style="{StaticResource TextMono}" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="2" Text="{x:Static icons:Icons.ChevronRight}" Style="{StaticResource IconMuted}" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Détails -->
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="14">
+                                <HorizontalStackLayout Spacing="6">
+                                    <controls:StatusBadge Value="{Binding Intervention.Type}" Text="{Binding Intervention.TypeLabel}" />
+                                    <controls:StatusBadge Value="{Binding Intervention.Status}" Text="{Binding Intervention.StatusLabel}" />
+                                </HorizontalStackLayout>
+
+                                <Border Style="{StaticResource ErrorBanner}" Padding="12,8" IsVisible="{Binding IsOverdue}">
+                                    <HorizontalStackLayout Spacing="8">
+                                        <Label Text="{x:Static icons:Icons.TriangleAlert}" Style="{StaticResource Icon}" FontSize="15"
+                                               TextColor="{AppThemeBinding Light={StaticResource DangerLight}, Dark={StaticResource DangerDark}}" />
+                                        <Label Text="En retard sur le créneau prévu" Style="{StaticResource ErrorBannerText}" FontSize="13" />
+                                    </HorizontalStackLayout>
+                                </Border>
+
+                                <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="0">
+                                    <Label Text="{x:Static icons:Icons.CalendarClock}" Style="{StaticResource IconMuted}" FontSize="17" VerticalOptions="Start" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" Padding="0,0,0,14">
+                                        <Label Text="Créneau prévu" Style="{StaticResource TextOverline}" />
+                                        <Label Text="{Binding Window}" Style="{StaticResource TextStrong}" />
+                                    </VerticalStackLayout>
+
+                                    <Label Grid.Row="1" Text="{x:Static icons:Icons.CircleCheck}" Style="{StaticResource IconMuted}" FontSize="17" VerticalOptions="Start"
+                                           IsVisible="{Binding HasActualEnd}" />
+                                    <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="1" Padding="0,0,0,14" IsVisible="{Binding HasActualEnd}">
+                                        <Label Text="Terminée le" Style="{StaticResource TextOverline}" />
+                                        <Label Text="{Binding ActualEnd}" Style="{StaticResource TextStrong}" />
+                                    </VerticalStackLayout>
+
+                                    <Label Grid.Row="2" Text="{x:Static icons:Icons.User}" Style="{StaticResource IconMuted}" FontSize="17" VerticalOptions="Start" />
+                                    <VerticalStackLayout Grid.Row="2" Grid.Column="1" Spacing="1" Padding="0,0,0,14">
+                                        <Label Text="Technicien" Style="{StaticResource TextOverline}" />
+                                        <Label Text="{Binding Intervention.TechnicianFullName, TargetNullValue='Non assigné'}" Style="{StaticResource TextStrong}" />
+                                    </VerticalStackLayout>
+
+                                    <Label Grid.Row="3" Text="{x:Static icons:Icons.Building}" Style="{StaticResource IconMuted}" FontSize="17" VerticalOptions="Start" />
+                                    <VerticalStackLayout Grid.Row="3" Grid.Column="1" Spacing="1">
+                                        <Label Text="Enseigne" Style="{StaticResource TextOverline}" />
+                                        <Label Text="{Binding Intervention.StoreName}" Style="{StaticResource TextStrong}" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <!-- Commentaire -->
+                        <Border Style="{StaticResource Card}" IsVisible="{Binding HasComment}">
+                            <VerticalStackLayout Spacing="6">
+                                <HorizontalStackLayout Spacing="8">
+                                    <Label Text="{x:Static icons:Icons.Message}" Style="{StaticResource IconMuted}" FontSize="15" />
+                                    <Label Text="Commentaire" Style="{StaticResource TextOverline}" VerticalOptions="Center" />
+                                </HorizontalStackLayout>
+                                <Label Text="{Binding Comment}" Style="{StaticResource TextBody}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <!-- Actions, fixées en bas -->
+        <Border Grid.Row="1" StrokeThickness="0" StrokeShape="Rectangle" Padding="16,12,16,16" IsVisible="{Binding CanCancel}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceLight}, Dark={StaticResource SurfaceDark}}">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                <Button Text="Annuler" Style="{StaticResource DangerButton}" Command="{Binding CancelCommand}" IsEnabled="{Binding IsIdle}"
+                        ImageSource="{FontImageSource Glyph={x:Static icons:Icons.CircleX}, FontFamily=Lucide, Size=16, Color={StaticResource RedDot}}" ContentLayout="Left,6" />
+                <Button Grid.Column="1" Text="Commencer" Command="{Binding StartCommand}" IsVisible="{Binding CanStart}" IsEnabled="{Binding IsIdle}"
+                        ImageSource="{FontImageSource Glyph={x:Static icons:Icons.Play}, FontFamily=Lucide, Size=16, Color=White}" ContentLayout="Left,8" />
+                <Button Grid.Column="1" Text="Terminer" Command="{Binding CompleteCommand}" IsVisible="{Binding CanComplete}" IsEnabled="{Binding IsIdle}"
+                        Background="#059669"
+                        ImageSource="{FontImageSource Glyph={x:Static icons:Icons.CheckCheck}, FontFamily=Lucide, Size=16, Color=White}" ContentLayout="Left,8" />
+            </Grid>
+        </Border>
+        <BoxView Grid.Row="1" Style="{StaticResource Divider}" VerticalOptions="Start" IsVisible="{Binding CanCancel}"
+                 Color="{AppThemeBinding Light={StaticResource LineLight}, Dark={StaticResource LineDark}}" />
+    </Grid>
+
+</views:PageBase>

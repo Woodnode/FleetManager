@@ -1,10 +1,12 @@
 using FleetManager.Api.Infrastructure;
 using FleetManager.Api.DTOs.Requests;
 using FleetManager.Application.Auth.Commands;
+using FleetManager.Application.Auth.Queries;
 using FleetManager.Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.RateLimiting;
 
 namespace FleetManager.Api.Controllers;
@@ -23,7 +25,8 @@ public class AuthController : ApiControllerBase
     }
 
     /// <summary>
-    /// Authentifie un utilisateur. Les tokens sont émis dans des cookies httpOnly.
+    /// Authentifie un utilisateur. Les tokens sont émis dans des cookies httpOnly, ou dans le corps
+    /// pour l'application mobile (en-tête <c>X-Client: mobile</c>).
     /// </summary>
     [HttpPost("login")]
     [EnableRateLimiting("login")]
@@ -37,29 +40,27 @@ public class AuthController : ApiControllerBase
         if (result.IsFailure)
             return Unauthorized(new { error = result.Error!.Message });
 
-        var dto = result.Value!;
-        SetTokenCookies(dto.AccessToken, dto.RefreshToken);
-
-        return Ok(new
-        {
-            userId    = dto.UserId,
-            firstName = dto.FirstName,
-            lastName  = dto.LastName,
-            email     = dto.Email,
-            role      = dto.Role.ToString(),
-            storeId   = dto.StoreId,
-        });
+        return Ok(StartSession(result.Value!));
     }
 
     /// <summary>
-    /// Émet une nouvelle paire access/refresh token à partir du refresh token en cookie.
+    /// Émet une nouvelle paire access/refresh token à partir du refresh token en cookie, ou dans le
+    /// corps pour l'application mobile.
     /// </summary>
     [HttpPost("refresh")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
+    public async Task<IActionResult> Refresh(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequest? request,
+        CancellationToken cancellationToken)
     {
-        if (!Request.Cookies.TryGetValue("refresh_token", out var refreshToken))
+        // Le mobile ne lit jamais le cookie : une page tierce qui se ferait passer pour lui ne
+        // pourrait pas changer le cookie d'un navigateur en jetons lisibles dans le corps.
+        var refreshToken = NativeClient.IsRequestedBy(Request)
+            ? request?.RefreshToken
+            : Request.Cookies.TryGetValue(AuthCookiePolicy.RefreshTokenCookie, out var cookieToken) ? cookieToken : null;
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
             return Unauthorized(new { error = "Refresh token manquant." });
 
         var result = await _mediator.Send(new RefreshTokenCommand(refreshToken), cancellationToken);
@@ -67,18 +68,7 @@ public class AuthController : ApiControllerBase
         if (result.IsFailure)
             return Unauthorized(new { error = result.Error!.Message });
 
-        var dto = result.Value!;
-        SetTokenCookies(dto.AccessToken, dto.RefreshToken);
-
-        return Ok(new
-        {
-            userId    = dto.UserId,
-            firstName = dto.FirstName,
-            lastName  = dto.LastName,
-            email     = dto.Email,
-            role      = dto.Role.ToString(),
-            storeId   = dto.StoreId,
-        });
+        return Ok(StartSession(result.Value!));
     }
 
     /// <summary>
@@ -138,6 +128,35 @@ public class AuthController : ApiControllerBase
     }
 
     // ── Private helpers ──────────────────────────────────────────────────────
+
+    private object StartSession(AuthResultDto dto)
+    {
+        if (NativeClient.IsRequestedBy(Request))
+        {
+            return new
+            {
+                userId       = dto.UserId,
+                firstName    = dto.FirstName,
+                lastName     = dto.LastName,
+                email        = dto.Email,
+                role         = dto.Role.ToString(),
+                storeId      = dto.StoreId,
+                accessToken  = dto.AccessToken,
+                refreshToken = dto.RefreshToken,
+            };
+        }
+
+        SetTokenCookies(dto.AccessToken, dto.RefreshToken);
+        return new
+        {
+            userId    = dto.UserId,
+            firstName = dto.FirstName,
+            lastName  = dto.LastName,
+            email     = dto.Email,
+            role      = dto.Role.ToString(),
+            storeId   = dto.StoreId,
+        };
+    }
 
     private void SetTokenCookies(string accessToken, string? refreshToken)
     {

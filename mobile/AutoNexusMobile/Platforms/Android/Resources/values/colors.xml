@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Couleurs natives. colorPrimary teinte la barre d'état : elle prolonge l'en-tête sombre de
+     l'app, comme la barre supérieure du web mobile (sidebar-bg). colorAccent, le bleu de
+     marque, colore les contrôles natifs (curseurs, sélection de texte). -->
+<resources>
+    <color name="colorPrimary">#0C1020</color>
+    <color name="colorPrimaryDark">#0C1020</color>
+    <color name="colorAccent">#4C6EF5</color>
+</resources>
