@@ -61,9 +61,13 @@ public sealed partial class TodayViewModel : ViewModelBase
         Greeting = $"Bonjour {_session.Current?.FirstName}";
         var day = FleetFormat.LongDay(now);
         DayTitle = char.ToUpper(day[0]) + day[1..];
-        Summary = agenda.OpenCount == 0 && agenda.DoneCount == 0
-            ? "Aucune intervention prévue"
-            : $"{FleetFormat.Count(agenda.OpenCount, "intervention à traiter", "interventions à traiter")} · {FleetFormat.Count(agenda.DoneCount, "terminée", "terminées")}";
+        Summary = (agenda.OpenCount, agenda.DoneCount) switch
+        {
+            (0, 0) => "Aucune intervention prévue",
+            (0, var done) => $"Tout est traité · {FleetFormat.Count(done, "terminée", "terminées")}",
+            (var open, 0) => FleetFormat.Count(open, "intervention à traiter", "interventions à traiter"),
+            (var open, var done) => $"{FleetFormat.Count(open, "intervention à traiter", "interventions à traiter")} · {FleetFormat.Count(done, "terminée", "terminées")}",
+        };
 
         Groups.Clear();
         foreach (var (section, items) in agenda.Sections)
