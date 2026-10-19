@@ -1,25 +1,25 @@
-# AutoNexus — Fleet Management Platform
+# AutoNexus, fleet management
 
-A full-stack fleet management application built with **ASP.NET Core 8** and **React + TypeScript**. Manage vehicles, maintenance interventions, and dealership branches across multiple locations, with role-based access control.
-
-> **Live demo credentials** — see the [Demo Accounts](#demo-accounts) section below.
-
----
+AutoNexus manages the vehicles, maintenance interventions and branches of a group of car dealerships. The back end is ASP.NET Core 8 and the front end React with TypeScript. Access depends on the user's role, and the demo accounts are listed [below](#demo-accounts).
 
 ## Features
 
-- **Dashboard** — real-time KPIs (vehicle count, availability rate, intervention stats) with Recharts visualizations
-- **Vehicle management** — full CRUD, VIN validation, status lifecycle (Available → InIntervention → Sold / OutOfService), soft delete, pagination + search/filter
-- **Intervention tracking** — plan, start, complete or cancel maintenance interventions; status transitions with mandatory cancellation reason
-- **Store management** — multi-branch support; store managers and technicians are scoped to their branch
-- **Role-based access** — three roles (Admin, StoreManager, Technician) enforced on both the API and the UI
-- **Secure authentication** — JWT stored in httpOnly cookies, refresh token rotation, token revocation (JTI blacklist), rate-limited login
+The dashboard shows live figures (vehicle count, availability rate, intervention statistics) with Recharts charts.
 
----
+Vehicles can be created, edited and deleted. The VIN is validated, the status follows a fixed lifecycle (Available, then InIntervention, then Sold or OutOfService), deletion is soft, and lists are paginated with search and filters.
 
-## Tech Stack
+Interventions are planned, started, completed or cancelled. Each status change is checked, and a cancellation requires a reason.
+
+The application handles several branches. Store managers and technicians only see their own branch.
+
+There are three roles (Admin, StoreManager, Technician), and the API enforces them as well as the UI.
+
+The JWT lives in an httpOnly cookie. Refresh tokens are rotated, revoked tokens are blacklisted by JTI, and the login endpoint is rate-limited.
+
+## Tech stack
 
 ### Backend
+
 | Layer | Technology |
 |---|---|
 | Framework | ASP.NET Core 8 |
@@ -35,6 +35,7 @@ A full-stack fleet management application built with **ASP.NET Core 8** and **Re
 | Testing | xUnit + FluentAssertions + NSubstitute |
 
 ### Frontend
+
 | Layer | Technology |
 |---|---|
 | Framework | React 18 + TypeScript |
@@ -45,8 +46,6 @@ A full-stack fleet management application built with **ASP.NET Core 8** and **Re
 | HTTP | Axios (interceptors: auto token refresh) |
 | Styling | Tailwind CSS |
 | Charts | Recharts |
-
----
 
 ## Architecture
 
@@ -93,19 +92,22 @@ FleetManagerV2/
         └── types/                    # Shared TypeScript interfaces
 ```
 
-### Key design decisions
+### Design decisions
 
-- **Clean Architecture** — strict dependency rule: Domain has no external dependencies; Application depends only on Domain; Infrastructure and API depend inward.
-- **CQRS via MediatR** — commands and queries are cleanly separated; pipeline behaviors handle cross-cutting concerns (validation, audit logging).
-- **Rich domain model** — entities encapsulate their business rules (e.g. `Vehicle.ChangeStatus` throws if the vehicle is sold; `Vin.Create` enforces the 17-character ISO standard).
-- **Result pattern** — handlers return `Result<T>` instead of throwing exceptions, making error paths explicit at the controller layer.
-- **httpOnly cookies** — the JWT access token is never exposed to JavaScript; a refresh token with rotation handles session renewal transparently.
+The code follows Clean Architecture with a strict dependency rule. The Domain depends on nothing, the Application depends only on the Domain, and Infrastructure and API point inward.
 
----
+Commands and queries are separate MediatR requests. Cross-cutting concerns (validation, audit logging) run as pipeline behaviors.
 
-## Getting Started
+Entities hold their own business rules. For example, `Vehicle.ChangeStatus` throws if the vehicle is sold, and `Vin.Create` enforces the 17-character ISO format.
+
+Handlers return `Result<T>` instead of throwing, so the controllers handle error paths explicitly.
+
+JavaScript never sees the JWT access token, which stays in an httpOnly cookie. A rotating refresh token renews the session without the user noticing.
+
+## Getting started
 
 ### Prerequisites
+
 - [.NET 8 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 20+](https://nodejs.org/)
 - [Docker + Docker Compose](https://www.docker.com/)
@@ -126,26 +128,27 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The API will be available at `http://localhost:5000`.
+The API is then available at `http://localhost:5000`.
 
 ### Run locally (development)
 
-**1. Start PostgreSQL**
+Start PostgreSQL:
+
 ```bash
 docker compose up postgres -d
 ```
 
-**2. Start the API**
+Start the API. The connection string in `appsettings.json` has no password, so provide it through an environment variable (PowerShell shown, same value as `POSTGRES_PASSWORD` in `.env`):
 
-The connection string in `appsettings.json` has no password: provide it through an environment variable (PowerShell shown, same value as `POSTGRES_PASSWORD` in `.env`).
 ```powershell
 $env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5432;Database=fleetmanager;Username=fleetmanager;Password=<POSTGRES_PASSWORD>"
 cd src/FleetManager.Api
 dotnet run
-# API: https://localhost:5290 — Swagger UI at /
+# API: https://localhost:5290, Swagger UI at /
 ```
 
-**3. Start the frontend**
+Start the frontend:
+
 ```bash
 cd client
 npm install
@@ -153,38 +156,30 @@ npm run dev
 # Frontend: http://localhost:5173
 ```
 
-The database is automatically migrated and seeded with demo data on first startup.
+On first startup, the database is migrated and filled with demo data.
 
----
+## Demo accounts
 
-## Demo Accounts
-
-All accounts share the same password: **`Fleet@2024`**
+All accounts share the same password, `Fleet@2024`.
 
 | Role | Email | Access |
 |---|---|---|
-| **Admin** | `admin@fleetmanager.fr` | Full access — all stores, all data |
-| **Store Manager** | `directeur.paris@fleetmanager.fr` | Paris branch only |
-| **Technician** | `tech1.paris@fleetmanager.fr` | Paris branch, read-only on vehicles |
+| Admin | `admin@fleetmanager.fr` | All stores and all data |
+| Store Manager | `directeur.paris@fleetmanager.fr` | Paris branch only |
+| Technician | `tech1.paris@fleetmanager.fr` | Paris branch, read-only on vehicles |
 
-These accounts are pre-loaded by the database seeder, which also creates 3 branches, 12 vehicles, and 6 interventions in various states.
+The database seeder creates these accounts, along with 3 branches, 12 vehicles and 6 interventions in various states. On the login page, clicking a role card fills in its credentials.
 
-On the login page, click any role card to auto-fill the credentials.
-
----
-
-## Running Tests
+## Running tests
 
 ```bash
 cd tests/FleetManager.Tests
 dotnet test
 ```
 
----
+## API documentation
 
-## API Documentation
-
-Swagger UI is available at the API root (`/`) when running in Development mode. The API is versioned via URL segments (`/api/v1/...`).
+In Development mode, Swagger UI is served at the API root (`/`). The API is versioned through the URL (`/api/v1/...`).
 
 Main endpoints:
 
