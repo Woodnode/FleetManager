@@ -1,5 +1,6 @@
 using AutoNexusMobile.Core.Api;
 using AutoNexusMobile.Core.Auth;
+using AutoNexusMobile.Core.Fleet;
 using AutoNexusMobile.Core.Realtime;
 using CommunityToolkit.Mvvm.Messaging;
 
@@ -30,6 +31,12 @@ public sealed class AppSession
     public AuthSession? Current => _sessions.Current;
 
     public UserRole? Role => _sessions.Current?.Role;
+
+    public Guid? UserId => _sessions.Current?.UserId;
+
+    /// <summary>L'utilisateur peut-il faire avancer cette intervention (voir RolePermissions) ?</summary>
+    public bool CanActOn(InterventionDto intervention) =>
+        RolePermissions.CanActOnIntervention(Role, UserId, intervention.TechnicianId);
 
     public async Task StartAsync()
     {

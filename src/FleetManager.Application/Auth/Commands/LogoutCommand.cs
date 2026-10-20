@@ -28,9 +28,10 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
 
     public async Task<Result> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
-        // Blacklist the current access token's JTI so it cannot be reused
+        // Le JTI reste en liste noire jusqu'à l'expiration réelle du jeton (et non une durée fixe,
+        // plus courte que la durée de vie configurée) : un jeton volé ne survit pas à la déconnexion.
         if (_currentUser.Jti is not null)
-            _blacklist.Revoke(_currentUser.Jti, TimeSpan.FromMinutes(15));
+            _blacklist.Revoke(_currentUser.Jti, RemainingLifetime(_currentUser.AccessTokenExpiresAt));
 
         // Revoke all refresh tokens for this user
         if (_currentUser.UserId.HasValue)
@@ -40,5 +41,16 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
         }
 
         return Result.Success();
+    }
+
+    /// <summary>Durée de vie restante du jeton, avec une marge pour la tolérance d'horloge.</summary>
+    public static TimeSpan RemainingLifetime(DateTimeOffset? expiresAt)
+    {
+        // Sans claim exp lisible, on garde le JTI une journée : bien plus que toute durée configurée.
+        if (expiresAt is null)
+            return TimeSpan.FromDays(1);
+
+        var remaining = expiresAt.Value - DateTimeOffset.UtcNow + TimeSpan.FromMinutes(1);
+        return remaining > TimeSpan.Zero ? remaining : TimeSpan.FromMinutes(1);
     }
 }

@@ -20,13 +20,11 @@ public class RegisterCommandHandlerTests
     private readonly Mock<IUserRepository>    _userRepoMock     = new();
     private readonly Mock<IStoreRepository>   _storeRepoMock    = new();
     private readonly Mock<IPasswordHasher>    _hasherMock       = new();
-    private readonly Mock<IJwtTokenGenerator> _jwtGeneratorMock = new();
     private readonly Mock<IUnitOfWork>        _unitOfWorkMock   = new();
     private readonly RegisterCommandHandler   _handler;
 
     private static readonly Guid StoreId    = Guid.NewGuid();
     private static readonly string MockHash  = "$2b$12$HashedPassword";
-    private static readonly string MockToken = "eyJ.mock.token";
 
     public RegisterCommandHandlerTests()
     {
@@ -34,7 +32,6 @@ public class RegisterCommandHandlerTests
             _userRepoMock.Object,
             _storeRepoMock.Object,
             _hasherMock.Object,
-            _jwtGeneratorMock.Object,
             _unitOfWorkMock.Object);
     }
 
@@ -46,13 +43,12 @@ public class RegisterCommandHandlerTests
         _hasherMock.Setup(h => h.Hash(It.IsAny<string>())).Returns(MockHash);
         _userRepoMock.Setup(r => r.AddAsync(It.IsAny<User>(), default)).Returns(Task.CompletedTask);
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
-        _jwtGeneratorMock.Setup(j => j.GenerateToken(It.IsAny<User>())).Returns(MockToken);
     }
 
     // ── Inscription réussie ───────────────────────────────────────────────────
 
     [Fact]
-    public async Task Handle_CommandeValide_RetourneSuccessAvecToken()
+    public async Task Handle_CommandeValide_RetourneLeCompteSansJeton()
     {
         //Étant donné
         ConfigureSuccessScenario();
@@ -63,7 +59,9 @@ public class RegisterCommandHandlerTests
 
         //Alors
         result.IsSuccess.Should().BeTrue();
-        result.Value!.AccessToken.Should().Be(MockToken);
+        result.Value!.Email.Should().Be("nouveau@fleet.fr");
+        // Aucun jeton au nom du nouvel utilisateur ne part vers l'admin qui crée le compte.
+        typeof(RegisteredUserDto).GetProperty("AccessToken").Should().BeNull();
     }
 
     [Fact]
@@ -152,7 +150,6 @@ public class RegisterCommandHandlerTests
         await _handler.Handle(command, default);
 
         //Alors
-        _jwtGeneratorMock.Verify(j => j.GenerateToken(It.IsAny<User>()), Times.Never);
     }
 
     // ── Rejet : enseigne inexistante ──────────────────────────────────────────
@@ -201,7 +198,6 @@ public class RegisterCommandHandlerTests
         await _handler.Handle(command, default);
 
         //Alors
-        _jwtGeneratorMock.Verify(j => j.GenerateToken(It.IsAny<User>()), Times.Never);
     }
 
     // ── Hachage obligatoire du mot de passe ───────────────────────────────────

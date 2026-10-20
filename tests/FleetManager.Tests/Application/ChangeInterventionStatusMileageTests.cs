@@ -35,6 +35,7 @@ public class ChangeInterventionStatusMileageTests
         _vehicle.ChangeStatus(VehicleStatus.InIntervention);
 
         _currentUser.Setup(c => c.Role).Returns(UserRole.Technician);
+        _currentUser.Setup(c => c.UserId).Returns(tech.Id);
         _currentUser.Setup(c => c.StoreId).Returns(StoreId);
         _interventionRepo.Setup(r => r.GetByIdAsync(_intervention.Id, default)).ReturnsAsync(_intervention);
         _vehicleRepo.Setup(r => r.GetByIdAsync(_vehicle.Id, default)).ReturnsAsync(_vehicle);
@@ -44,6 +45,20 @@ public class ChangeInterventionStatusMileageTests
     private ChangeInterventionStatusCommandHandler BuildHandler() =>
         new(_interventionRepo.Object, _vehicleRepo.Object, new StoreAuthorizationService(),
             _currentUser.Object, _unitOfWork.Object, _publisher.Object);
+
+    [Fact]
+    public async Task EtantDonneInterventionDUnCollegue_QuandTechnicienTermine_AlorsIntrouvableSansEnregistrement()
+    {
+        _currentUser.Setup(c => c.UserId).Returns(Guid.NewGuid());
+        var command = new ChangeInterventionStatusCommand(_intervention.Id, InterventionStatus.Completed, null, 999_999);
+
+        var result = await BuildHandler().Handle(command, default);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("NOT_FOUND");
+        _vehicle.Mileage.Should().Be(42_000);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(default), Times.Never);
+    }
 
     [Fact]
     public async Task EtantDonneReleveValide_QuandTerminer_AlorsKilometrageDuVehiculeMisAJour()

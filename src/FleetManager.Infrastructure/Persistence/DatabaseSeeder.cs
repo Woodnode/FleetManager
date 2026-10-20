@@ -27,6 +27,27 @@ public class DatabaseSeeder
         _logger = logger;
     }
 
+    /// <summary>
+    /// Efface toutes les données puis recharge le jeu de démonstration. Sert à la remise à zéro
+    /// planifiée du site vitrine : ce qu'un visiteur a supprimé, renommé ou créé (comptes compris)
+    /// disparaît.
+    /// </summary>
+    public async Task ResetAsync(CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+
+        // Ordre imposé par les clés étrangères ; les filtres d'archivage sont ignorés pour tout effacer.
+        await _context.RefreshTokens.ExecuteDeleteAsync(cancellationToken);
+        await _context.Interventions.IgnoreQueryFilters().ExecuteDeleteAsync(cancellationToken);
+        await _context.Vehicles.IgnoreQueryFilters().ExecuteDeleteAsync(cancellationToken);
+        await _context.Users.ExecuteDeleteAsync(cancellationToken);
+        await _context.Stores.ExecuteDeleteAsync(cancellationToken);
+        _context.ChangeTracker.Clear();
+
+        await SeedAsync();
+        await transaction.CommitAsync(cancellationToken);
+    }
+
     public async Task SeedAsync()
     {
         if (await _context.Stores.AnyAsync())

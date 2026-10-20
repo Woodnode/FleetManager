@@ -74,7 +74,7 @@ public sealed partial class InterventionsViewModel : ViewModelBase
         var now = DateTime.Now;
         Interventions.Clear();
         foreach (var intervention in result.Items)
-            Interventions.Add(new InterventionItem(intervention, now));
+            Interventions.Add(new InterventionItem(intervention, now, _session.CanActOn(intervention)));
 
         Subtitle = $"{FleetFormat.Count(result.TotalCount, "intervention enregistrée", "interventions enregistrées")}";
         IsEmpty = Interventions.Count == 0;
@@ -95,7 +95,7 @@ public sealed partial class InterventionsViewModel : ViewModelBase
             _hasMore = result.HasNextPage;
             var now = DateTime.Now;
             foreach (var intervention in result.Items.Where(i => Interventions.All(existing => existing.Id != i.Id)))
-                Interventions.Add(new InterventionItem(intervention, now));
+                Interventions.Add(new InterventionItem(intervention, now, _session.CanActOn(intervention)));
         }
         catch (ApiException ex)
         {

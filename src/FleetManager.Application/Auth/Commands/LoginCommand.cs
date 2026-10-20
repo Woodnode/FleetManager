@@ -46,11 +46,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<AuthResu
         var storedHash = user?.PasswordHash ?? TimingGuardHash;
         var passwordCorrect = _passwordHasher.Verify(request.Password, storedHash);
 
-        if (user is null || !passwordCorrect)
+        // Compte désactivé : même réponse qu'un mauvais mot de passe, pour ne rien révéler.
+        if (user is null || !passwordCorrect || !user.IsActive)
             return Result.Failure<AuthResultDto>(Error.Unauthorized("Email ou mot de passe incorrect."));
 
-        var accessToken  = _jwtTokenGenerator.GenerateToken(user);
-        var refreshToken = RefreshToken.Create(user.Id);
+        var accessToken = _jwtTokenGenerator.GenerateToken(user);
+        var (refreshToken, refreshTokenValue) = RefreshToken.Create(user.Id);
 
         await _refreshTokenRepository.AddAsync(refreshToken, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -63,6 +64,6 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, Result<AuthResu
             user.Role,
             user.StoreId,
             accessToken,
-            refreshToken.Token));
+            refreshTokenValue));
     }
 }

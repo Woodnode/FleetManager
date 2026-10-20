@@ -98,7 +98,18 @@ public class RolePermissionsTests
         RolePermissions.CanSeeArchives(role).Should().Be(archives);
         RolePermissions.CanPlanInterventions(role).Should().Be(vehicles);
         RolePermissions.CanManageStores(role).Should().Be(stores);
-        RolePermissions.CanChangeVehicleStatus(role).Should().BeTrue();
+        RolePermissions.CanChangeVehicleStatus(role).Should().Be(vehicles);
+    }
+
+    [Fact]
+    public void EtantDonneTechnicien_QuandInterventionDUnCollegue_AlorsAucuneAction()
+    {
+        var moi = Guid.NewGuid();
+
+        RolePermissions.CanActOnIntervention(UserRole.Technician, moi, moi).Should().BeTrue();
+        RolePermissions.CanActOnIntervention(UserRole.Technician, moi, Guid.NewGuid()).Should().BeFalse();
+        RolePermissions.CanActOnIntervention(UserRole.StoreManager, moi, Guid.NewGuid()).Should().BeTrue();
+        RolePermissions.CanActOnIntervention(null, moi, moi).Should().BeFalse();
     }
 
     [Theory]

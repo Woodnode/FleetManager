@@ -1,6 +1,6 @@
 # AutoNexus, fleet management
 
-AutoNexus manages the vehicles, maintenance interventions and branches of a group of car dealerships. The back end is ASP.NET Core 8 and the front end React with TypeScript. Access depends on the user's role, and the demo accounts are listed [below](#demo-accounts).
+AutoNexus manages the vehicles, maintenance interventions and branches of a group of car dealerships. The back end is ASP.NET Core 10 and the front end React with TypeScript. Access depends on the user's role, and the demo accounts are listed [below](#demo-accounts).
 
 ## Features
 
@@ -14,7 +14,7 @@ The application handles several branches. Store managers and technicians only se
 
 There are three roles (Admin, StoreManager, Technician), and the API enforces them as well as the UI.
 
-The JWT lives in an httpOnly cookie. Refresh tokens are rotated, revoked tokens are blacklisted by JTI, and the login endpoint is rate-limited.
+The JWT lives in an httpOnly cookie. Refresh tokens are stored as SHA-256 hashes and rotated; replaying a used one revokes the whole session. Logout blacklists the access token's JTI until it expires, an admin can deactivate an account, and login and refresh are rate-limited per client IP.
 
 ## Tech stack
 
@@ -22,10 +22,10 @@ The JWT lives in an httpOnly cookie. Refresh tokens are rotated, revoked tokens 
 
 | Layer | Technology |
 |---|---|
-| Framework | ASP.NET Core 8 |
+| Framework | ASP.NET Core 10 |
 | Architecture | Clean Architecture + DDD |
 | Messaging | MediatR (CQRS) |
-| ORM | Entity Framework Core 8 |
+| ORM | Entity Framework Core 10 |
 | Database | PostgreSQL 16 (Npgsql) |
 | Validation | FluentValidation (pipeline behavior) |
 | Auth | JWT Bearer + httpOnly cookies + Refresh Tokens |
@@ -108,7 +108,7 @@ JavaScript never sees the JWT access token, which stays in an httpOnly cookie. A
 
 ### Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
 - [Node.js 20+](https://nodejs.org/)
 - [Docker + Docker Compose](https://www.docker.com/)
 
@@ -166,9 +166,11 @@ All accounts share the same password, `Fleet@2024`.
 |---|---|---|
 | Admin | `admin@fleetmanager.fr` | All stores and all data |
 | Store Manager | `directeur.paris@fleetmanager.fr` | Paris branch only |
-| Technician | `tech1.paris@fleetmanager.fr` | Paris branch, read-only on vehicles |
+| Technician | `tech1.paris@fleetmanager.fr` | Paris branch, read-only on vehicles; starts and closes their own interventions |
 
 The database seeder creates these accounts, along with 3 branches, 12 vehicles and 6 interventions in various states. On the login page, clicking a role card fills in its credentials.
+
+On the public demo (`Demo__ResetEnabled=true`), the data is wiped and seeded again every night at 04:00 UTC, so changes made with these shared accounts, accounts created with them included, do not last.
 
 ## Mobile app (.NET MAUI)
 
@@ -203,15 +205,16 @@ Main endpoints:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/api/v1/auth/login` | Login (rate-limited: 5 req/min) |
+| POST | `/api/v1/auth/login` | Login (rate-limited: 5 req/min per IP) |
 | POST | `/api/v1/auth/logout` | Logout + token revocation |
 | POST | `/api/v1/auth/refresh` | Refresh access token |
 | GET | `/api/v1/vehicles` | List vehicles (paginated, filterable) |
 | POST | `/api/v1/vehicles` | Create vehicle |
-| PATCH | `/api/v1/vehicles/{id}/status` | Change vehicle status |
+| PATCH | `/api/v1/vehicles/{id}/status` | Change vehicle status (Admin, StoreManager) |
 | GET | `/api/v1/interventions` | List interventions (paginated, filterable) |
 | GET | `/api/v1/interventions/mine` | Technician's day: assigned interventions and overdue open ones |
-| POST | `/api/v1/interventions` | Create intervention |
-| PATCH | `/api/v1/interventions/{id}/status` | Start, complete (optional odometer reading) or cancel |
+| POST | `/api/v1/interventions` | Create intervention (Admin, StoreManager) |
+| PATCH | `/api/v1/interventions/{id}/status` | Start, complete (optional odometer reading) or cancel; a technician only acts on their own |
+| PATCH | `/api/v1/users/{id}/active` | Activate or deactivate an account (Admin) |
 | GET | `/api/v1/stores` | List all branches |
 | GET | `/health` | Health check |

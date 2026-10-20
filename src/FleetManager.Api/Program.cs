@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 using Serilog;
 using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
@@ -68,12 +68,9 @@ builder.Services.AddSwaggerGen(c =>
         Description = "Entrez votre token JWT : Bearer {token}"
     });
 
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
     {
-        {
-            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
-            Array.Empty<string>()
-        }
+        [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
 
     var xmlPath = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
@@ -168,15 +165,22 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
+builder.Services.AddClientIpForwarding();
+
+// Site vitrine : les données de démonstration sont remises à zéro chaque nuit.
+if (builder.Configuration.GetValue<bool>("Demo:ResetEnabled"))
+    builder.Services.AddHostedService<DemoResetService>();
+
+// Limites par adresse IP du visiteur (voir ClientIpForwarding) : un script ne bloque plus la
+// connexion de tout le monde, et chaque adresse est freinée séparément.
 builder.Services.AddRateLimiter(opt =>
 {
-    opt.AddFixedWindowLimiter("login", o =>
-    {
-        o.PermitLimit          = 5;
-        o.Window               = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit           = 0;
-    });
+    opt.AddPolicy("login", context => RateLimitPartition.GetFixedWindowLimiter(
+        ClientIpForwarding.PartitionKey(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+    opt.AddPolicy("refresh", context => RateLimitPartition.GetFixedWindowLimiter(
+        ClientIpForwarding.PartitionKey(context),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -209,6 +213,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())

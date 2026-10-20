@@ -3,7 +3,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace FleetManager.Tests.Integration;
 
@@ -38,10 +40,11 @@ public class FleetManagerWebAppFactory : WebApplicationFactory<Program>
 
         builder.ConfigureServices(services =>
         {
-            var descriptor = services.SingleOrDefault(
-                d => d.ServiceType == typeof(DbContextOptions<FleetManagerDbContext>));
-            if (descriptor is not null)
-                services.Remove(descriptor);
+            // Depuis EF Core 9, la configuration du fournisseur (Npgsql) est aussi enregistrée à part,
+            // en IDbContextOptionsConfiguration : il faut la retirer avec les options, sinon les deux
+            // fournisseurs coexistent dans le conteneur.
+            services.RemoveAll<DbContextOptions<FleetManagerDbContext>>();
+            services.RemoveAll<IDbContextOptionsConfiguration<FleetManagerDbContext>>();
 
             // SQLite in-memory: supports FK constraints, transactions, and relational queries —
             // far more representative than EF InMemory while still running without SQL Server.

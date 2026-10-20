@@ -13,6 +13,8 @@ import Modal from '../components/ui/Modal'
 import { SkeletonTable } from '../components/ui/Skeleton'
 import { useIsMobile } from '../hooks/useMediaQuery'
 import PageHeader from '../components/ui/PageHeader'
+import { useAuth } from '../contexts/AuthContext'
+import { isManagerOrAdminRole } from '../utils/auth'
 import Pagination from '../components/ui/Pagination'
 import { createInterventionSchema, type CreateInterventionFormValues } from '../schemas/intervention'
 import type { Intervention, InterventionStatus, InterventionType, CreateInterventionRequest } from '../types'
@@ -111,14 +113,15 @@ function ActionBtn({ onClick, icon, title, color }: {
   )
 }
 
-function InterventionCard({ intervention: i, onStatus }: {
+function InterventionCard({ intervention: i, canAct, onStatus }: {
   intervention: Intervention
+  canAct: boolean
   onStatus: (i: Intervention, next: InterventionStatus) => void
 }) {
   const urgency  = getUrgency(i)
   const dateInfo = relativeDate(i.plannedStartDate, i.status)
-  const canStart  = i.status === 'Planned'
-  const canFinish = i.status === 'InProgress'
+  const canStart  = canAct && i.status === 'Planned'
+  const canFinish = canAct && i.status === 'InProgress'
   const canCancel = canStart || canFinish
   return (
     <article className="fm-card p-4" style={{ borderLeft: `3px solid ${URGENCY_BORDER[urgency]}` }}>
@@ -166,6 +169,10 @@ interface StatusAction {
 
 export default function Interventions() {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  const canPlan = isManagerOrAdminRole(user?.role)
+  // Un technicien ne fait avancer que ses propres interventions (règle de l'API).
+  const canAct = (i: Intervention) => canPlan || (!!user && i.technicianId === user.userId)
 
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter,   setTypeFilter]   = useState('')
@@ -285,11 +292,11 @@ export default function Interventions() {
       <PageHeader
         title="Interventions"
         subtitle={`${interventionsPage?.totalCount ?? 0} intervention${(interventionsPage?.totalCount ?? 0) !== 1 ? 's' : ''} enregistrée${(interventionsPage?.totalCount ?? 0) !== 1 ? 's' : ''}`}
-        action={
+        action={canPlan ? (
           <button onClick={openAdd} className="fm-btn-primary">
             <Plus size={15} />Nouvelle intervention
           </button>
-        }
+        ) : undefined}
       />
 
       {/* Filters */}
@@ -330,7 +337,7 @@ export default function Interventions() {
               {statusFilter || typeFilter ? 'Aucune intervention ne correspond aux filtres' : 'Aucune intervention enregistrée'}
             </div>
           ) : interventions.map(i => (
-            <InterventionCard key={i.id} intervention={i} onStatus={openStatus} />
+            <InterventionCard key={i.id} intervention={i} canAct={canAct(i)} onStatus={openStatus} />
           ))}
           {interventionsPage && interventionsPage.totalPages > 1 && (
             <div className="fm-card overflow-hidden">
@@ -433,15 +440,15 @@ export default function Interventions() {
                     {/* Actions */}
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1 fm-reveal">
-                        {i.status === 'Planned' && (
+                        {canAct(i) && i.status === 'Planned' && (
                           <ActionBtn onClick={() => openStatus(i, 'InProgress')}
                             icon={<Play size={13} />} title="Démarrer" color="blue" />
                         )}
-                        {i.status === 'InProgress' && (
+                        {canAct(i) && i.status === 'InProgress' && (
                           <ActionBtn onClick={() => openStatus(i, 'Completed')}
                             icon={<CheckCheck size={13} />} title="Terminer" color="green" />
                         )}
-                        {(i.status === 'Planned' || i.status === 'InProgress') && (
+                        {canAct(i) && (i.status === 'Planned' || i.status === 'InProgress') && (
                           <ActionBtn onClick={() => openStatus(i, 'Cancelled')}
                             icon={<XCircle size={13} />} title="Annuler" color="red" />
                         )}

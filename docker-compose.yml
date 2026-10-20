@@ -9,8 +9,10 @@ services:
       POSTGRES_USER: fleetmanager
       # Secrets lus dans .env (non versionné) : copier .env.example en .env et remplir.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans .env}
+    # Joignable depuis la machine seulement (outils locaux). Docker contourne le pare-feu de
+    # l'hôte : publier sur 0.0.0.0 exposerait la base à Internet.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -31,11 +33,20 @@ services:
       ASPNETCORE_URLS: "http://+:8080"
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=fleetmanager;Username=fleetmanager;Password=${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans .env}"
       JwtSettings__Secret: ${JWT_SECRET:?Définir JWT_SECRET dans .env (32 caractères minimum)}
-      JwtSettings__ExpiryMinutes: "60"
+      # Même durée que le cookie et que la liste noire de déconnexion.
+      JwtSettings__ExpiryMinutes: "15"
       JwtSettings__Issuer: "FleetManagerApi"
       JwtSettings__Audience: "FleetManagerClient"
+      # Front et API partagent la même origine derrière le relais : Lax protège mieux du CSRF.
+      Auth__CookieSameSite: "Lax"
+      # Comptes de démonstration publics : données remises à zéro chaque nuit (4 h UTC).
+      Demo__ResetEnabled: "true"
+      Demo__ResetHourUtc: "4"
+    # Seul Caddy, sur la même machine, joint l'API : le contrôle du secret du relais ne peut pas
+    # être contourné en appelant directement le port.
     ports:
-      - "5000:8080"
+      - "127.0.0.1:5000:8080"
+    mem_limit: 512m
     depends_on:
       postgres:
         condition: service_healthy

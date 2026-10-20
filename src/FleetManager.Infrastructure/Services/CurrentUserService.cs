@@ -17,6 +17,9 @@ public class CurrentUserService : ICurrentUserService
         FirstName = user?.FindFirstValue(ClaimTypes.GivenName);
         LastName  = user?.FindFirstValue(ClaimTypes.Surname);
         Jti       = user?.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        AccessTokenExpiresAt = long.TryParse(user?.FindFirstValue(JwtRegisteredClaimNames.Exp), out var exp)
+            ? DateTimeOffset.FromUnixTimeSeconds(exp)
+            : null;
     }
 
     public Guid?     UserId    { get; }
@@ -26,4 +29,5 @@ public class CurrentUserService : ICurrentUserService
     public string?   FirstName { get; }
     public string?   LastName  { get; }
     public string?   Jti       { get; }
+    public DateTimeOffset? AccessTokenExpiresAt { get; }
 }

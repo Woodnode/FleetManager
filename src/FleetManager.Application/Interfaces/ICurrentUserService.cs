@@ -11,4 +11,7 @@ public interface ICurrentUserService
     string?   FirstName { get; }
     string?   LastName  { get; }
     string?   Jti       { get; }
+
+    /// <summary>Expiration du jeton d'accès courant (claim « exp »), si elle est connue.</summary>
+    DateTimeOffset? AccessTokenExpiresAt { get; }
 }

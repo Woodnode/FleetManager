@@ -129,8 +129,9 @@ public class VehiclesController : ApiControllerBase
             : MapError(result.Error!);
     }
 
-    /// <summary>Modifie le statut d'un véhicule. Non-Admin : enseigne propre uniquement.</summary>
+    /// <summary>Modifie le statut d'un véhicule. Admin : tous ; StoreManager : enseigne propre uniquement.</summary>
     [HttpPatch("{id:guid}/status")]
+    [Authorize(Roles = "Admin,StoreManager")]
     [ProducesResponseType(typeof(VehicleDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

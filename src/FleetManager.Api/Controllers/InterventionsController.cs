@@ -77,8 +77,9 @@ public class InterventionsController : ApiControllerBase
             : MapError(result.Error!);
     }
 
-    /// <summary>Crée une nouvelle intervention. Non-Admin : storeId imposé par le JWT.</summary>
+    /// <summary>Planifie une intervention. Admin : toutes les enseignes ; StoreManager : la sienne.</summary>
     [HttpPost]
+    [Authorize(Roles = "Admin,StoreManager")]
     [ProducesResponseType(typeof(InterventionDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -95,7 +96,10 @@ public class InterventionsController : ApiControllerBase
             : MapError(result.Error!);
     }
 
-    /// <summary>Modifie le statut d'une intervention. À la clôture, le kilométrage relevé met à jour le véhicule.</summary>
+    /// <summary>
+    /// Modifie le statut d'une intervention. À la clôture, le kilométrage relevé met à jour le véhicule.
+    /// Un technicien ne peut faire avancer que les interventions qui lui sont attribuées.
+    /// </summary>
     [HttpPatch("{id:guid}/status")]
     [ProducesResponseType(typeof(InterventionDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -60,7 +60,7 @@
                     <Button Text="Planifier une intervention" Command="{Binding PlanCommand}" IsVisible="{Binding CanPlan}"
                             ImageSource="{FontImageSource Glyph={x:Static icons:Icons.CalendarClock}, FontFamily=Lucide, Size=17, Color=White}" ContentLayout="Left,8" />
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Button Text="Changer le statut" Style="{StaticResource TintButton}" Command="{Binding ChangeStatusCommand}" IsEnabled="{Binding IsIdle}"
+                        <Button Text="Changer le statut" Style="{StaticResource TintButton}" Command="{Binding ChangeStatusCommand}" IsEnabled="{Binding IsIdle}" IsVisible="{Binding CanManage}"
                                 ImageSource="{FontImageSource Glyph={x:Static icons:Icons.Refresh}, FontFamily=Lucide, Size=16, Color={StaticResource Brand500}}" ContentLayout="Left,8">
                             <Button.Triggers>
                                 <DataTrigger TargetType="Button" Binding="{Binding CanManage}" Value="False">

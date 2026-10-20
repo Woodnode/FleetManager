@@ -6,12 +6,14 @@ namespace AutoNexusMobile.ViewModels;
 /// <summary>Intervention mise en forme pour une liste (journée, liste, historique d'un véhicule).</summary>
 public sealed class InterventionItem
 {
-    public InterventionItem(InterventionDto dto, DateTime? localNow = null)
+    public InterventionItem(InterventionDto dto, DateTime? localNow = null, bool canAct = true)
     {
         Dto = dto;
         var now = localNow ?? DateTime.Now;
         IsOverdue = dto.Status is InterventionStatus.Planned or InterventionStatus.InProgress && dto.PlannedEndDate < now;
-        NextAction = RolePermissions.NextStatuses(dto.Status).Where(s => s != InterventionStatus.Cancelled).Cast<InterventionStatus?>().FirstOrDefault();
+        NextAction = canAct
+            ? RolePermissions.NextStatuses(dto.Status).Where(s => s != InterventionStatus.Cancelled).Cast<InterventionStatus?>().FirstOrDefault()
+            : null;
     }
 
     public InterventionDto Dto { get; }

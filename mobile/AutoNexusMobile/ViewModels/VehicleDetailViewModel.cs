@@ -66,7 +66,7 @@ public sealed partial class VehicleDetailViewModel : ViewModelBase, IQueryAttrib
         var now = DateTime.Now;
         Interventions.Clear();
         foreach (var intervention in (await historyTask).OrderByDescending(i => i.PlannedStartDate))
-            Interventions.Add(new InterventionItem(intervention, now));
+            Interventions.Add(new InterventionItem(intervention, now, _session.CanActOn(intervention)));
         HasInterventions = Interventions.Count > 0;
         OnPropertyChanged(nameof(CanManage));
         OnPropertyChanged(nameof(CanPlan));

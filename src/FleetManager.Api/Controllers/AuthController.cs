@@ -48,6 +48,7 @@ public class AuthController : ApiControllerBase
     /// corps pour l'application mobile.
     /// </summary>
     [HttpPost("refresh")]
+    [EnableRateLimiting("refresh")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Refresh(

@@ -35,7 +35,7 @@ public class GetTechniciansByStoreQueryHandler
         var users = await _userRepository.GetByStoreIdAsync(request.StoreId, cancellationToken);
 
         var technicians = users
-            .Where(u => u.Role == UserRole.Technician)
+            .Where(u => u.Role == UserRole.Technician && u.IsActive)
             .Select(TechnicianDto.FromEntity)
             .ToList()
             .AsReadOnly();

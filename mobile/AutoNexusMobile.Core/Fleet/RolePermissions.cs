@@ -17,8 +17,15 @@ public static class RolePermissions
 
     public static bool CanSeeArchives(UserRole? role) => CanManageVehicles(role);
 
-    /// <summary>Changer le statut d'un véhicule de son enseigne : tous les rôles.</summary>
-    public static bool CanChangeVehicleStatus(UserRole? role) => role is not null;
+    /// <summary>Changer le statut d'un véhicule de son enseigne : gérants et administrateurs.</summary>
+    public static bool CanChangeVehicleStatus(UserRole? role) => CanManageVehicles(role);
+
+    /// <summary>
+    /// Faire avancer une intervention : gérants et administrateurs pour toute intervention de
+    /// leur périmètre, un technicien seulement pour celles qui lui sont attribuées.
+    /// </summary>
+    public static bool CanActOnIntervention(UserRole? role, Guid? userId, Guid technicianId) =>
+        CanManageVehicles(role) || (IsTechnician(role) && userId == technicianId);
 
     public static bool CanPlanInterventions(UserRole? role) => CanManageVehicles(role);
 

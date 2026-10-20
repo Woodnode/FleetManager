@@ -51,6 +51,11 @@ public class ChangeInterventionStatusCommandHandler : IRequestHandler<ChangeInte
         if (!_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, intervention.StoreId))
             return Result.Failure<InterventionDto>(Error.NotFound($"Intervention '{request.InterventionId}' introuvable."));
 
+        // Un technicien n'agit que sur ses propres interventions : celle d'un collègue est
+        // présentée comme introuvable, comme celle d'une autre enseigne.
+        if (_currentUser.Role == UserRole.Technician && intervention.TechnicianId != _currentUser.UserId)
+            return Result.Failure<InterventionDto>(Error.NotFound($"Intervention '{request.InterventionId}' introuvable."));
+
         try
         {
             switch (request.NewStatus)

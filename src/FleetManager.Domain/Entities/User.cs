@@ -14,6 +14,9 @@ public class User
     public UserRole Role { get; private set; }
     public Guid? StoreId { get; private set; }
 
+    /// <summary>Un compte désactivé ne peut plus se connecter ni rafraîchir sa session.</summary>
+    public bool IsActive { get; private set; } = true;
+
     private User() { }
 
     public static User Create(string firstName, string lastName, string email, string passwordHash, UserRole role, Guid? storeId = null)
@@ -43,6 +46,10 @@ public class User
     }
 
     public string FullName => $"{FirstName} {LastName}";
+
+    public void Deactivate() => IsActive = false;
+
+    public void Activate() => IsActive = true;
 
     public void ChangeRole(UserRole newRole, Guid? storeId)
     {

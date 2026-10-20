@@ -10,11 +10,13 @@ public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
     {
         builder.HasKey(r => r.Id);
 
-        builder.Property(r => r.Token)
-               .HasMaxLength(128)
+        // Empreinte SHA-256 en hexadécimal : 64 caractères.
+        builder.Property(r => r.TokenHash)
+               .HasMaxLength(64)
                .IsRequired();
 
-        builder.HasIndex(r => r.Token).IsUnique();
+        builder.HasIndex(r => r.TokenHash).IsUnique();
+        builder.HasIndex(r => r.FamilyId);
 
         builder.Property(r => r.ExpiresAt).IsRequired();
         builder.Property(r => r.IsRevoked).IsRequired().HasDefaultValue(false);

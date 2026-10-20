@@ -12,6 +12,7 @@ import { SkeletonTable } from '../components/ui/Skeleton'
 import PageHeader from '../components/ui/PageHeader'
 import Pagination from '../components/ui/Pagination'
 import { useAuth } from '../contexts/AuthContext'
+import { isManagerOrAdminRole } from '../utils/auth'
 import { getApiErrorMessage, getArchivedVinConflict, type ArchivedVinConflict } from '../utils/apiError'
 import { useRestoreVehicle } from '../hooks/useRestoreVehicle'
 import { useIsMobile } from '../hooks/useMediaQuery'
@@ -98,9 +99,9 @@ function EmptyState({ search, statusFilter, onReset }: {
 
 // ── Vehicle card (grid view) ───────────────────────────────────────────────────
 
-function VehicleCard({ vehicle: v, canDelete, onEdit, onStatus, onDelete }: {
+function VehicleCard({ vehicle: v, canManage, onEdit, onStatus, onDelete }: {
   vehicle: Vehicle
-  canDelete: boolean
+  canManage: boolean
   onEdit: () => void
   onStatus: () => void
   onDelete: () => void
@@ -113,9 +114,13 @@ function VehicleCard({ vehicle: v, canDelete, onEdit, onStatus, onDelete }: {
           <p className="text-xs font-mono text-slate-400 mt-0.5 tracking-wide truncate">{v.vin}</p>
         </div>
         <div className="flex items-center gap-1 fm-reveal shrink-0 ml-2">
-          <ActionBtn onClick={onStatus} icon={<RefreshCw size={12} />} title="Changer le statut" color="blue" />
-          <ActionBtn onClick={onEdit} icon={<Pencil size={12} />} title="Modifier" color="slate" />
-          {canDelete && <ActionBtn onClick={onDelete} icon={<Trash2 size={12} />} title="Supprimer" color="red" />}
+          {canManage && (
+            <>
+              <ActionBtn onClick={onStatus} icon={<RefreshCw size={12} />} title="Changer le statut" color="blue" />
+              <ActionBtn onClick={onEdit} icon={<Pencil size={12} />} title="Modifier" color="slate" />
+              <ActionBtn onClick={onDelete} icon={<Trash2 size={12} />} title="Supprimer" color="red" />
+            </>
+          )}
         </div>
       </div>
 
@@ -307,7 +312,8 @@ function EditVehicleForm({ vehicle, stores, onSubmit, pending, onCancel }: EditV
 export default function Vehicles() {
   const qc = useQueryClient()
   const { user } = useAuth()
-  const canDelete = user?.role === 'Admin' || user?.role === 'StoreManager'
+  // Statut, modification et suppression : réservés aux gérants et aux admins, comme dans l'API.
+  const canManage = isManagerOrAdminRole(user?.role)
 
   const [search, setSearch]             = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -382,11 +388,11 @@ export default function Vehicles() {
       <PageHeader
         title="Véhicules"
         subtitle={`${vehiclesPage?.totalCount ?? 0} véhicule${(vehiclesPage?.totalCount ?? 0) !== 1 ? 's' : ''} dans le parc`}
-        action={
+        action={canManage ? (
           <button onClick={() => setAddOpen(true)} className="fm-btn-primary">
             <Plus size={15} />Ajouter un véhicule
           </button>
-        }
+        ) : undefined}
       />
 
       {/* Toolbar : recherche puis filtres défilants sur mobile, une seule ligne à partir de md */}
@@ -497,9 +503,13 @@ export default function Vehicles() {
                     <td className="px-5 py-3.5 text-sm text-slate-500">{v.storeName}</td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center justify-end gap-1 fm-reveal">
-                        <ActionBtn onClick={() => { setNewStatus(v.status); setStatusVehicle(v) }} icon={<RefreshCw size={13} />} title="Changer le statut" color="blue" />
-                        <ActionBtn onClick={() => setEditVehicle(v)} icon={<Pencil size={13} />} title="Modifier" color="slate" />
-                        {canDelete && <ActionBtn onClick={() => setDeleteVehicle(v)} icon={<Trash2 size={13} />} title="Supprimer" color="red" />}
+                        {canManage && (
+                          <>
+                            <ActionBtn onClick={() => { setNewStatus(v.status); setStatusVehicle(v) }} icon={<RefreshCw size={13} />} title="Changer le statut" color="blue" />
+                            <ActionBtn onClick={() => setEditVehicle(v)} icon={<Pencil size={13} />} title="Modifier" color="slate" />
+                            <ActionBtn onClick={() => setDeleteVehicle(v)} icon={<Trash2 size={13} />} title="Supprimer" color="red" />
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -548,7 +558,7 @@ export default function Vehicles() {
                 <VehicleCard
                   key={v.id}
                   vehicle={v}
-                  canDelete={canDelete}
+                  canManage={canManage}
                   onEdit={() => setEditVehicle(v)}
                   onStatus={() => { setNewStatus(v.status); setStatusVehicle(v) }}
                   onDelete={() => setDeleteVehicle(v)}

@@ -15,37 +15,40 @@ public record RegisterCommand(
     string Email,
     string Password,
     UserRole Role,
-    Guid? StoreId) : IRequest<Result<AuthResultDto>>;
+    Guid? StoreId) : IRequest<Result<RegisteredUserDto>>;
 
-public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<AuthResultDto>>
+/// <summary>
+/// Compte créé. Aucun jeton : l'admin qui crée un compte ne doit pas pouvoir agir sous
+/// l'identité du nouvel utilisateur.
+/// </summary>
+public record RegisteredUserDto(Guid UserId, string FirstName, string LastName, string Email, UserRole Role, Guid? StoreId);
+
+public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<RegisteredUserDto>>
 {
     private readonly IUserRepository _userRepository;
     private readonly IStoreRepository _storeRepository;
     private readonly IPasswordHasher _passwordHasher;
-    private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IUnitOfWork _unitOfWork;
 
     public RegisterCommandHandler(
         IUserRepository userRepository,
         IStoreRepository storeRepository,
         IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator,
         IUnitOfWork unitOfWork)
     {
         _userRepository    = userRepository;
         _storeRepository   = storeRepository;
         _passwordHasher    = passwordHasher;
-        _jwtTokenGenerator = jwtTokenGenerator;
         _unitOfWork        = unitOfWork;
     }
 
-    public async Task<Result<AuthResultDto>> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<Result<RegisteredUserDto>> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         if (await _userRepository.ExistsByEmailAsync(request.Email, cancellationToken))
-            return Result.Failure<AuthResultDto>(Error.Conflict($"L'email '{request.Email}' est déjà utilisé."));
+            return Result.Failure<RegisteredUserDto>(Error.Conflict($"L'email '{request.Email}' est déjà utilisé."));
 
         if (request.StoreId.HasValue && !await _storeRepository.ExistsAsync(request.StoreId.Value, cancellationToken))
-            return Result.Failure<AuthResultDto>(Error.NotFound($"Le magasin '{request.StoreId}' n'existe pas."));
+            return Result.Failure<RegisteredUserDto>(Error.NotFound($"Le magasin '{request.StoreId}' n'existe pas."));
 
         try
         {
@@ -55,20 +58,17 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, Result<Au
             await _userRepository.AddAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var accessToken = _jwtTokenGenerator.GenerateToken(user);
-
-            return Result.Success(new AuthResultDto(
+            return Result.Success(new RegisteredUserDto(
                 user.Id,
                 user.FirstName,
                 user.LastName,
                 user.Email.Value,
                 user.Role,
-                user.StoreId,
-                accessToken));
+                user.StoreId));
         }
         catch (DomainException ex)
         {
-            return Result.Failure<AuthResultDto>(Error.Validation(ex.Message));
+            return Result.Failure<RegisteredUserDto>(Error.Validation(ex.Message));
         }
     }
 }
