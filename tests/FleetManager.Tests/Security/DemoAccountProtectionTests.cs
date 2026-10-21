@@ -21,10 +21,17 @@ public class DemoAccountProtectionTests
     private readonly Mock<ICurrentUserService>     _currentUserMock = new();
     private readonly Mock<IUnitOfWork>             _unitOfWorkMock  = new();
 
-    private static DemoAccountPolicy Policy(bool demoEnabled) => new(
+    private static DemoAccountPolicy Policy(bool demoEnabled, string key = "Demo:ResetEnabled") => new(
         new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { ["Demo:ResetEnabled"] = demoEnabled.ToString() })
+            .AddInMemoryCollection(new Dictionary<string, string?> { [key] = demoEnabled.ToString() })
             .Build());
+
+    [Fact]
+    public void EtantDonneComptesPublicsSansRemiseAZeroInterne_QuandEvaluerPolitique_AlorsProteges()
+    {
+        // Production : la remise à zéro est faite par une tâche planifiée, pas par l'API.
+        Policy(demoEnabled: true, key: "Demo:PublicAccounts").IsProtected("tech1.paris@fleetmanager.fr").Should().BeTrue();
+    }
 
     private SetUserActiveCommandHandler Handler(IDemoAccountPolicy policy)
     {
