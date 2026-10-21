@@ -38,7 +38,7 @@ public class ChangeVehicleStatusCommandHandler : IRequestHandler<ChangeVehicleSt
             return Result.Failure<VehicleDto>(Error.NotFound($"Vehicle '{request.VehicleId}' not found."));
 
         if (!_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, vehicle.StoreId))
-            return Result.Failure<VehicleDto>(Error.Forbidden("Vous ne pouvez pas modifier le statut d'un véhicule d'une autre enseigne."));
+            return Result.Failure<VehicleDto>(Error.NotFound($"Vehicle '{request.VehicleId}' not found."));
 
         try
         {

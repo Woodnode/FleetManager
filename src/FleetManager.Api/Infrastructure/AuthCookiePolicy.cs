@@ -12,7 +12,9 @@ public sealed class AuthCookiePolicy
 {
     public const string AccessTokenCookie  = "access_token";
     public const string RefreshTokenCookie = "refresh_token";
-    public const string RefreshTokenPath   = "/api/v1/auth/refresh";
+    // Toutes les routes d'authentification : le cookie doit aussi parvenir à /auth/logout.
+    public const string RefreshTokenPath   = "/api/v1/auth";
+    public const string LegacyRefreshTokenPath = "/api/v1/auth/refresh";
 
     public SameSiteMode SameSite { get; }
 

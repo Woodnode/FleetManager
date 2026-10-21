@@ -4,6 +4,7 @@ using FleetManager.Application.Interfaces;
 using FleetManager.Domain.Entities;
 using FleetManager.Domain.Interfaces;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace FleetManager.Application.Auth.Commands;
 
@@ -15,17 +16,20 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
     private readonly IUserRepository _userRepository;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<RefreshTokenCommandHandler> _logger;
 
     public RefreshTokenCommandHandler(
         IRefreshTokenRepository refreshTokenRepository,
         IUserRepository userRepository,
         IJwtTokenGenerator jwtTokenGenerator,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<RefreshTokenCommandHandler> logger)
     {
         _refreshTokenRepository = refreshTokenRepository;
         _userRepository         = userRepository;
         _jwtTokenGenerator      = jwtTokenGenerator;
         _unitOfWork             = unitOfWork;
+        _logger                 = logger;
     }
 
     public async Task<Result<AuthResultDto>> Handle(RefreshTokenCommand request, CancellationToken cancellationToken)
@@ -39,6 +43,9 @@ public class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCommand, R
         if (existing.IsRevoked)
         {
             await _refreshTokenRepository.RevokeFamilyAsync(existing.FamilyId, cancellationToken);
+            _logger.LogWarning(
+                "Refresh token déjà consommé présenté de nouveau : session {FamilyId} de l'utilisateur {UserId} révoquée.",
+                existing.FamilyId, existing.UserId);
             return Invalid();
         }
 

@@ -48,7 +48,8 @@ public class AuthCookiePolicyTests
         var options = AuthCookiePolicy.FromConfiguration("Lax")
             .Build(expires: DateTimeOffset.UtcNow.AddDays(7), path: AuthCookiePolicy.RefreshTokenPath);
 
-        options.Path.Should().Be("/api/v1/auth/refresh");
+        // Routes d'authentification seulement : /auth/refresh et /auth/logout le reçoivent.
+        options.Path.Should().Be("/api/v1/auth");
         options.Expires.Should().NotBeNull();
     }
 }

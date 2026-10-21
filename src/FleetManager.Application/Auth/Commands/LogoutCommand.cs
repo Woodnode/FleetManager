@@ -5,7 +5,11 @@ using MediatR;
 
 namespace FleetManager.Application.Auth.Commands;
 
-public record LogoutCommand : IRequest<Result>;
+/// <summary>
+/// Ferme la session. <paramref name="RefreshToken"/> vient du cookie (web) ou du corps (mobile) : il
+/// permet de révoquer la session même quand le jeton d'accès a déjà expiré.
+/// </summary>
+public record LogoutCommand(string? RefreshToken = null) : IRequest<Result>;
 
 public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
 {
@@ -33,11 +37,19 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
         if (_currentUser.Jti is not null)
             _blacklist.Revoke(_currentUser.Jti, RemainingLifetime(_currentUser.AccessTokenExpiresAt));
 
-        // Revoke all refresh tokens for this user
+        // Jeton d'accès valide : toutes les sessions de l'utilisateur sont fermées.
         if (_currentUser.UserId.HasValue)
         {
             await _refreshTokens.RevokeAllForUserAsync(_currentUser.UserId.Value, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+
+        // Jeton d'accès expiré ou absent : le refresh token présenté suffit à fermer sa session.
+        if (!string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            var presented = await _refreshTokens.GetByTokenAsync(request.RefreshToken, cancellationToken);
+            if (presented is not null)
+                await _refreshTokens.RevokeFamilyAsync(presented.FamilyId, cancellationToken);
         }
 
         return Result.Success();

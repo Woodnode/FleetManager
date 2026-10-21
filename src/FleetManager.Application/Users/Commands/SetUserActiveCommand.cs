@@ -14,17 +14,20 @@ public class SetUserActiveCommandHandler : IRequestHandler<SetUserActiveCommand,
     private readonly IRefreshTokenRepository _refreshTokens;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IDemoAccountPolicy _demoAccounts;
 
     public SetUserActiveCommandHandler(
         IUserRepository userRepository,
         IRefreshTokenRepository refreshTokens,
         ICurrentUserService currentUser,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IDemoAccountPolicy demoAccounts)
     {
         _userRepository = userRepository;
         _refreshTokens  = refreshTokens;
         _currentUser    = currentUser;
         _unitOfWork     = unitOfWork;
+        _demoAccounts   = demoAccounts;
     }
 
     public async Task<Result> Handle(SetUserActiveCommand request, CancellationToken cancellationToken)
@@ -39,6 +42,10 @@ public class SetUserActiveCommandHandler : IRequestHandler<SetUserActiveCommand,
         var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         if (user is null)
             return Result.Failure(Error.NotFound($"Utilisateur '{request.UserId}' introuvable."));
+
+        // Comptes de démonstration publics : les désactiver fermerait la démo à tous les visiteurs.
+        if (!request.IsActive && _demoAccounts.IsProtected(user.Email.Value))
+            return Result.Failure(Error.Validation("Les comptes de démonstration ne peuvent pas être désactivés."));
 
         if (request.IsActive)
         {

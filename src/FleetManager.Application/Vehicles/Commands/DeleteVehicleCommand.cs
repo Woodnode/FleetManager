@@ -37,7 +37,7 @@ public class DeleteVehicleCommandHandler : IRequestHandler<DeleteVehicleCommand,
             return Result.Failure(Error.NotFound($"Vehicle '{request.VehicleId}' not found."));
 
         if (!_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, vehicle.StoreId))
-            return Result.Failure(Error.Forbidden("Vous ne pouvez pas supprimer un véhicule d'une autre enseigne."));
+            return Result.Failure(Error.NotFound($"Vehicle '{request.VehicleId}' not found."));
 
         // Source de vérité : les interventions elles-mêmes, pas seulement le statut du véhicule
         // (des données importées ou de démo peuvent avoir une intervention planifiée sur un véhicule "Disponible").

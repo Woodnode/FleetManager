@@ -143,6 +143,7 @@ public class SessionTests
 
         http.Requests.Last().Path.Should().Be("/api/v1/auth/logout");
         http.Requests.Last().Authorization.Should().Be(token);
+        http.Requests.Last().Body.Should().Contain("r1", "le refresh token ferme la session même si le jeton d'accès a expiré");
         sessions.Current.Should().BeNull();
         _store.Saved.Should().BeNull();
     }

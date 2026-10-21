@@ -121,7 +121,7 @@ public class InterventionCommandAuthorizationTests
 
         //Alors — le technicien doit appartenir à l'enseigne de l'intervention
         result.IsFailure.Should().BeTrue();
-        result.Error!.Message.Should().Contain("enseigne");
+        result.Error!.Code.Should().Be("NOT_FOUND", "un technicien d'une autre enseigne se présente comme introuvable");
         _interventionRepoMock.Verify(r => r.AddAsync(It.IsAny<Intervention>(), default), Times.Never);
     }
 

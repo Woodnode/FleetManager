@@ -16,12 +16,14 @@ public class AuthController : ApiControllerBase
     private readonly IMediator _mediator;
     private readonly ICurrentUserService _currentUser;
     private readonly AuthCookiePolicy _cookies;
+    private readonly ILogger<AuthController> _logger;
 
-    public AuthController(IMediator mediator, ICurrentUserService currentUser, AuthCookiePolicy cookies)
+    public AuthController(IMediator mediator, ICurrentUserService currentUser, AuthCookiePolicy cookies, ILogger<AuthController> logger)
     {
         _mediator    = mediator;
         _currentUser = currentUser;
         _cookies = cookies;
+        _logger = logger;
     }
 
     /// <summary>
@@ -38,7 +40,11 @@ public class AuthController : ApiControllerBase
         var result = await _mediator.Send(new LoginCommand(request.Email, request.Password), cancellationToken);
 
         if (result.IsFailure)
+        {
+            // Le courriel n'est pas journalisé : l'adresse suffit à repérer une attaque répartie.
+            _logger.LogWarning("Échec de connexion depuis {ClientIp}", ClientIpForwarding.PartitionKey(HttpContext));
             return Unauthorized(new { error = result.Error!.Message });
+        }
 
         return Ok(StartSession(result.Value!));
     }
@@ -93,16 +99,28 @@ public class AuthController : ApiControllerBase
 
     /// <summary>
     /// Déconnecte l'utilisateur : révoque le JTI et les refresh tokens, puis supprime les cookies.
+    /// Anonyme, car le jeton d'accès peut avoir expiré (sortie de veille, onglet gelé) : le refresh
+    /// token, en cookie ou dans le corps pour le mobile, suffit alors à fermer la session. Toujours 204.
     /// </summary>
     [HttpPost("logout")]
-    [Authorize]
-    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
+    [AllowAnonymous]
+    [EnableRateLimiting("refresh")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Logout(
+        [FromBody(EmptyBodyBehavior = EmptyBodyBehavior.Allow)] RefreshTokenRequest? request,
+        CancellationToken cancellationToken)
     {
-        await _mediator.Send(new LogoutCommand(), cancellationToken);
+        var refreshToken = NativeClient.IsRequestedBy(Request)
+            ? request?.RefreshToken
+            : Request.Cookies.TryGetValue(AuthCookiePolicy.RefreshTokenCookie, out var cookieToken) ? cookieToken : null;
 
-        // Mêmes attributs qu'à la pose, sinon le navigateur ne supprime pas les cookies.
+        await _mediator.Send(new LogoutCommand(refreshToken), cancellationToken);
+
+        // Mêmes attributs qu'à la pose, sinon le navigateur ne supprime pas les cookies. L'ancien
+        // chemin du refresh token est aussi effacé, pour les cookies posés avant son élargissement.
         Response.Cookies.Delete(AuthCookiePolicy.AccessTokenCookie,  _cookies.Build());
         Response.Cookies.Delete(AuthCookiePolicy.RefreshTokenCookie, _cookies.Build(path: AuthCookiePolicy.RefreshTokenPath));
+        Response.Cookies.Delete(AuthCookiePolicy.RefreshTokenCookie, _cookies.Build(path: AuthCookiePolicy.LegacyRefreshTokenPath));
         return NoContent();
     }
 
@@ -168,6 +186,9 @@ public class AuthController : ApiControllerBase
         {
             Response.Cookies.Append(AuthCookiePolicy.RefreshTokenCookie, refreshToken,
                 _cookies.Build(expires: DateTimeOffset.UtcNow.AddDays(7), path: AuthCookiePolicy.RefreshTokenPath));
+            // Un cookie resté sur l'ancien chemin serait envoyé en premier à /auth/refresh : déjà
+            // consommé, il déclencherait la révocation de la session comme un jeton volé.
+            Response.Cookies.Delete(AuthCookiePolicy.RefreshTokenCookie, _cookies.Build(path: AuthCookiePolicy.LegacyRefreshTokenPath));
         }
     }
 }

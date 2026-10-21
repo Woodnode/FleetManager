@@ -147,7 +147,11 @@ public sealed class SessionManager
         {
             try
             {
-                using var request = new HttpRequestMessage(HttpMethod.Post, "auth/logout");
+                // Le refresh token ferme la session côté serveur même si le jeton d'accès a expiré.
+                using var request = new HttpRequestMessage(HttpMethod.Post, "auth/logout")
+                {
+                    Content = JsonContent.Create(new RefreshRequest(session.RefreshToken), options: ApiJson.Options),
+                };
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", session.AccessToken);
                 request.Headers.Add(ClientHeader, ClientValue);
                 using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));

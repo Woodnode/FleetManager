@@ -64,7 +64,7 @@ public class ChangeVehicleStatusCommandTests
     }
 
     [Fact]
-    public async Task Handle_WhenUserCannotAccessStore_ShouldReturnForbiddenFailure()
+    public async Task Handle_WhenUserCannotAccessStore_ShouldReturnNotFoundFailure()
     {
         // Arrange
         var vehicle = BuildAvailableVehicle();
@@ -78,7 +78,7 @@ public class ChangeVehicleStatusCommandTests
 
         // Assert
         result.IsFailure.Should().BeTrue();
-        result.Error!.Code.Should().Be("FORBIDDEN");
+        result.Error!.Code.Should().Be("NOT_FOUND");
     }
 
     [Fact]

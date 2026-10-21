@@ -42,9 +42,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { mounted = false }
   }, [])
 
+  // La session locale est fermée même si l'appel échoue : sinon l'onglet garde l'utilisateur et
+  // la requête suivante relancerait la session par le cookie de rafraîchissement.
   const logout = useCallback(async () => {
-    await apiLogout()
-    setUser(null)
+    try {
+      await apiLogout()
+    } finally {
+      setUser(null)
+    }
   }, [])
 
   const value = useMemo(() => ({ user, setUser, logout, loading }), [user, logout, loading])

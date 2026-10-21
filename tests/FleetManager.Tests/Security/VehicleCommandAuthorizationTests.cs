@@ -121,7 +121,7 @@ public class VehicleCommandAuthorizationTests
 
         //Alors
         result.IsFailure.Should().BeTrue();
-        result.Error!.Message.Should().Contain("autre enseigne");
+        result.Error!.Code.Should().Be("NOT_FOUND", "un véhicule d'une autre enseigne se présente comme introuvable");
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(default), Times.Never);
     }
 
@@ -167,7 +167,7 @@ public class VehicleCommandAuthorizationTests
 
         //Alors
         result.IsFailure.Should().BeTrue();
-        result.Error!.Message.Should().Contain("autre enseigne");
+        result.Error!.Code.Should().Be("NOT_FOUND", "un véhicule d'une autre enseigne se présente comme introuvable");
         _unitOfWorkMock.Verify(u => u.SaveChangesAsync(default), Times.Never);
     }
 
@@ -209,7 +209,7 @@ public class VehicleCommandAuthorizationTests
 
         //Alors
         result.IsFailure.Should().BeTrue();
-        result.Error!.Message.Should().Contain("autre enseigne");
+        result.Error!.Code.Should().Be("NOT_FOUND", "un véhicule d'une autre enseigne se présente comme introuvable");
     }
 
     // ── ChangeVehicleStatusCommandValidator (faille 3 : enum non validé) ──────

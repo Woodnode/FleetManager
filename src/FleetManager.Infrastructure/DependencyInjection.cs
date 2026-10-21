@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<DatabaseSeeder>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+        services.AddSingleton<IDemoAccountPolicy, DemoAccountPolicy>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddMemoryCache();
         services.AddSingleton<ITokenBlacklist, InMemoryTokenBlacklist>();

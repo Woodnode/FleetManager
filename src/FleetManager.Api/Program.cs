@@ -182,6 +182,14 @@ builder.Services.AddRateLimiter(opt =>
         ClientIpForwarding.PartitionKey(context),
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    // Trace des refus : une rafale de 429 sur la connexion signale une attaque en cours.
+    opt.OnRejected = (context, _) =>
+    {
+        context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>().LogWarning(
+            "Limite de débit atteinte sur {Path} depuis {ClientIp}",
+            context.HttpContext.Request.Path, ClientIpForwarding.PartitionKey(context.HttpContext));
+        return ValueTask.CompletedTask;
+    };
 });
 
 builder.Services.AddHealthChecks()

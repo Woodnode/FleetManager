@@ -45,7 +45,7 @@ public class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand,
             return Result.Failure<VehicleDto>(Error.NotFound($"Vehicle '{request.Id}' not found."));
 
         if (!_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, vehicle.StoreId))
-            return Result.Failure<VehicleDto>(Error.Forbidden("Vous ne pouvez pas modifier un véhicule d'une autre enseigne."));
+            return Result.Failure<VehicleDto>(Error.NotFound($"Vehicle '{request.Id}' not found."));
 
         // Non-Admin users cannot reassign a vehicle to a different store.
         var targetStoreId = _currentUser.IsAdmin ? request.StoreId : vehicle.StoreId;

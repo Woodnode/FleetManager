@@ -108,6 +108,49 @@ public sealed class SessionSecurityIntegrationTests : IClassFixture<FleetManager
     }
 
     [Fact]
+    public async Task EtantDonneJetonDAccesExpire_QuandDeconnexionWeb_AlorsLeCookieDeRafraichissementEstRevoque()
+    {
+        var refreshValue = await CreateRefreshTokenAsync(AuthTestData.ManagerEmail);
+
+        // Aucun jeton d'accès : seul le cookie de rafraîchissement accompagne la déconnexion.
+        using var logout = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout");
+        logout.Headers.Add("Cookie", $"refresh_token={Uri.EscapeDataString(refreshValue)}");
+        var logoutResponse = await _client.SendAsync(logout);
+
+        using var refresh = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/refresh");
+        refresh.Headers.Add("Cookie", $"refresh_token={Uri.EscapeDataString(refreshValue)}");
+        var refreshResponse = await _client.SendAsync(refresh);
+
+        logoutResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task EtantDonneJetonDAccesExpire_QuandDeconnexionMobile_AlorsLeRefreshTokenEstRevoque()
+    {
+        var refreshValue = await CreateRefreshTokenAsync(AuthTestData.ManagerEmail);
+
+        using var logout = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/logout")
+        {
+            Content = JsonContent.Create(new { refreshToken = refreshValue }),
+        };
+        logout.Headers.Add("X-Client", "mobile");
+        var logoutResponse = await _client.SendAsync(logout);
+        var refreshResponse = await AuthTestData.MobileRefreshAsync(_client, refreshValue);
+
+        logoutResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task EtantDonneAucunJeton_QuandDeconnexion_AlorsToujours204()
+    {
+        var response = await _client.PostAsync("/api/v1/auth/logout", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
     public async Task EtantDonneGerant_QuandDesactiverUnCompte_AlorsInterdit()
     {
         var target = Guid.NewGuid();
@@ -156,6 +199,18 @@ public sealed class SessionSecurityIntegrationTests : IClassFixture<FleetManager
         var response = await _client.SendAsync(request);
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    /// <summary>Refresh token posé directement en base : la limite de connexions n'est pas entamée.</summary>
+    private async Task<string> CreateRefreshTokenAsync(string email)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FleetManagerDbContext>();
+        var user = db.Users.AsEnumerable().Single(u => u.Email.Value == email);
+        var (entity, value) = RefreshToken.Create(user.Id);
+        db.RefreshTokens.Add(entity);
+        await db.SaveChangesAsync();
+        return value;
     }
 
     private void SeedExtraUsers()

@@ -69,7 +69,7 @@ public class CreateInterventionCommandHandler : IRequestHandler<CreateInterventi
 
         // Technician must belong to the same store as the intervention.
         if (technician.StoreId != request.StoreId)
-            return Result.Failure<InterventionDto>(Error.Validation("Le technicien doit appartenir à l'enseigne de l'intervention."));
+            return Result.Failure<InterventionDto>(Error.NotFound($"Technicien '{request.TechnicianId}' introuvable."));
 
         try
         {
