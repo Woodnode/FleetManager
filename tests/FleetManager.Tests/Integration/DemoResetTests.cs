@@ -37,7 +37,9 @@ public sealed class DemoResetTests : IDisposable
         var vehicles = await _context.Vehicles.IgnoreQueryFilters().CountAsync();
 
         _context.Users.Add(User.Create("Porte", "Derobee", "intrus@exemple.fr", "$2b$12$FakeHash", UserRole.Admin));
-        _context.Vehicles.IgnoreQueryFilters().First().SoftDelete();
+        // Les identifiants sont des Guid aléatoires : First() sans filtre tombait parfois sur un
+        // véhicule en intervention, que le domaine refuse d'archiver, et le test échouait au hasard.
+        _context.Vehicles.IgnoreQueryFilters().First(v => v.Status != VehicleStatus.InIntervention).SoftDelete();
         await _context.SaveChangesAsync();
 
         await _seeder.ResetAsync();
