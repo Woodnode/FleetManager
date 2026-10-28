@@ -77,8 +77,9 @@ public class InterventionsController : ApiControllerBase
             : MapError(result.Error!);
     }
 
-    /// <summary>Crée une nouvelle intervention. Non-Admin : storeId imposé par le JWT.</summary>
+    /// <summary>Crée une nouvelle intervention. Réservé aux gérants ; StoreManager : storeId imposé par le JWT.</summary>
     [HttpPost]
+    [Authorize(Roles = "Admin,StoreManager")]
     [ProducesResponseType(typeof(InterventionDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

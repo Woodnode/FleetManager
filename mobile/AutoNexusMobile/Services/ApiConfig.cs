@@ -1,4 +1,5 @@
 using System.Reflection;
+using AutoNexusMobile.Core.Api;
 
 namespace AutoNexusMobile.Services;
 
@@ -21,10 +22,8 @@ public static class ApiConfig
             .GetCustomAttributes<AssemblyMetadataAttribute>()
             .FirstOrDefault(a => a.Key == "AutoNexusApiHost")?.Value;
 
-        return !string.IsNullOrWhiteSpace(host)
-            ? host.Trim().TrimEnd('/')
-            : throw new InvalidOperationException(
-                "Fournir l'hôte de l'API à la compilation : dotnet publish -p:AutoNexusApiHost=https://...");
+        // Refuse un hôte absent ou en HTTP : les jetons ne doivent jamais circuler en clair.
+        return ApiHost.RequireHttps(host);
     }
 #endif
 

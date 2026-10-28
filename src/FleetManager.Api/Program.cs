@@ -8,6 +8,7 @@ using FleetManager.Application.Interfaces;
 using FleetManager.Infrastructure;
 using FleetManager.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -17,7 +18,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -155,7 +155,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Cookies d'authentification : Lax en production (même origine via le relais), None en local.
+// Cookies d'authentification : Lax par défaut (même origine via le relais), None en local via appsettings.Development.json.
 builder.Services.AddSingleton(AuthCookiePolicy.FromConfiguration(builder.Configuration["Auth:CookieSameSite"]));
 
 var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() ?? [];
@@ -168,15 +168,14 @@ builder.Services.AddCors(options =>
               .AllowCredentials());
 });
 
+// Adresse du client vue derrière Caddy : seuls les proxys listés (et le loopback) sont crus.
+builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    ForwardedHeadersSetup.Configure(o, builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()));
+
 builder.Services.AddRateLimiter(opt =>
 {
-    opt.AddFixedWindowLimiter("login", o =>
-    {
-        o.PermitLimit          = 5;
-        o.Window               = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit           = 0;
-    });
+    // Une fenêtre par adresse IP : une fenêtre globale laissait 5 échecs anonymes bloquer tout le monde.
+    opt.AddPolicy(ForwardedHeadersSetup.LoginPolicy, ForwardedHeadersSetup.LoginPartition);
     opt.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
 });
 
@@ -209,6 +208,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseForwardedHeaders();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())

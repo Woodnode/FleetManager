@@ -29,6 +29,14 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
         GetDashboardSummaryQuery request,
         CancellationToken        cancellationToken)
     {
+        // Un non-Admin sans rôle ou sans enseigne (enseigne supprimée, jeton incomplet) ne voit rien :
+        // un storeId null signifierait « toutes les enseignes » pour les dépôts.
+        if (!_currentUser.IsAdmin && (!_currentUser.Role.HasValue || !_currentUser.StoreId.HasValue))
+            return Result.Success(new DashboardSummaryDto(
+                new VehicleSummary(0, 0, 0, 0, 0),
+                new InterventionSummary(0, 0, 0, 0, 0, 0, 0, 0, 0),
+                Array.Empty<RecentInterventionDto>()));
+
         var storeId = _currentUser.IsAdmin ? (Guid?)null : _currentUser.StoreId;
 
         var vehicleCounts      = await _vehicleRepository.GetStatusCountsAsync(storeId, cancellationToken);

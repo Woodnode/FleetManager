@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Le jeton GitHub du workflow n'a besoin que de lire le dépôt.
+permissions:
+  contents: read
+
 jobs:
   # ─── Backend ─────────────────────────────────────────────────────────────────
   backend:

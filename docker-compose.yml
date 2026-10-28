@@ -9,8 +9,9 @@ services:
       POSTGRES_USER: fleetmanager
       # Secrets lus dans .env (non versionné) : copier .env.example en .env et remplir.
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Définir POSTGRES_PASSWORD dans .env}
+    # Publié sur la machine seulement : seul Caddy doit être joignable de l'extérieur.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -34,8 +35,12 @@ services:
       JwtSettings__ExpiryMinutes: "60"
       JwtSettings__Issuer: "FleetManagerApi"
       JwtSettings__Audience: "FleetManagerClient"
+      Auth__CookieSameSite: "Lax"
+      # Adresses IP des proxys dont on croit X-Forwarded-For (par exemple la passerelle Docker vue
+      # depuis le conteneur quand Caddy tourne sur l'hôte). Vide : seul le loopback est cru.
+      ForwardedHeaders__KnownProxies__0: ${FORWARDED_KNOWN_PROXY:-}
     ports:
-      - "5000:8080"
+      - "127.0.0.1:5000:8080"
     depends_on:
       postgres:
         condition: service_healthy

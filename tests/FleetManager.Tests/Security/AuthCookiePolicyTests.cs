@@ -15,11 +15,18 @@ public class AuthCookiePolicyTests
     [InlineData("lax",    SameSiteMode.Lax)]
     [InlineData(" Strict ", SameSiteMode.Strict)]
     [InlineData("None",   SameSiteMode.None)]
-    [InlineData("",       SameSiteMode.None)]
-    [InlineData(null,     SameSiteMode.None)]
+    [InlineData("",       SameSiteMode.Lax)]
+    [InlineData(null,     SameSiteMode.Lax)]
     public void Configuration_EstLue(string? configured, SameSiteMode expected)
     {
         AuthCookiePolicy.FromConfiguration(configured).SameSite.Should().Be(expected);
+    }
+
+    [Fact]
+    public void SansConfiguration_LaValeurParDefautEstLax()
+    {
+        // Un déploiement qui oublie Auth__CookieSameSite ne doit pas retomber sur None (cookies envoyés en intersite).
+        AuthCookiePolicy.FromConfiguration(null).SameSite.Should().Be(SameSiteMode.Lax);
     }
 
     [Fact]

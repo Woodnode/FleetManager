@@ -62,7 +62,7 @@ public sealed class ArchiveIntegrityTests : IDisposable
 
     private DeleteStoreCommandHandler DeleteStoreHandler() => new(
         new StoreRepository(_context), new VehicleRepository(_context), new InterventionRepository(_context),
-        new UnitOfWork(_context), _currentUser.Object);
+        new UserRepository(_context), new UnitOfWork(_context), _currentUser.Object);
 
     private RestoreVehicleCommandHandler RestoreHandler() => new(
         new VehicleRepository(_context), new StoreAuthorizationService(), _currentUser.Object, new UnitOfWork(_context));
@@ -202,6 +202,23 @@ public sealed class ArchiveIntegrityTests : IDisposable
 
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("CONFLICT");
+    }
+
+    [Fact]
+    public async Task SupprimerEnseigne_AvecUnGerantRattache_RetourneUnConflitEtGardeSonEnseigne()
+    {
+        // Sans ce contrôle, la clé étrangère SetNull laissait un gérant sans enseigne qui voyait tout le parc.
+        var manager = User.Create("Gina", "Gerante", "gerante@test.fr", "hash", UserRole.StoreManager, _lyon.Id);
+        _context.Add(manager);
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var result = await DeleteStoreHandler().Handle(new DeleteStoreCommand(_lyon.Id), default);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("CONFLICT");
+        _context.ChangeTracker.Clear();
+        (await _context.Users.SingleAsync(u => u.Id == manager.Id)).StoreId.Should().Be(_lyon.Id);
     }
 
     [Fact]

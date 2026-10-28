@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, useMemo, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { me, logout as apiLogout } from '../api/auth'
 import type { UserRole } from '../types'
 
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     let mounted = true
@@ -42,10 +44,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { mounted = false }
   }, [])
 
+  // Session terminée par le serveur (refresh refusé) : les données en cache appartiennent à l'ancien compte.
+  useEffect(() => {
+    const handler = () => {
+      queryClient.clear()
+      setUser(null)
+    }
+    window.addEventListener('auth:unauthorized', handler)
+    return () => window.removeEventListener('auth:unauthorized', handler)
+  }, [queryClient])
+
   const logout = useCallback(async () => {
-    await apiLogout()
-    setUser(null)
-  }, [])
+    try {
+      await apiLogout()
+    } finally {
+      // Même si l'API ne répond pas, la session locale est fermée et le cache vidé : le compte
+      // suivant sur ce navigateur ne doit pas voir les données de celui-ci.
+      queryClient.clear()
+      setUser(null)
+    }
+  }, [queryClient])
 
   const value = useMemo(() => ({ user, setUser, logout, loading }), [user, logout, loading])
 

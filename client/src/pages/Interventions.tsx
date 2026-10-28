@@ -8,6 +8,7 @@ import { interventionsApi } from '../api/interventions'
 import { vehiclesApi } from '../api/vehicles'
 import { storesApi } from '../api/stores'
 import { usersApi } from '../api/users'
+import { useAuth } from '../contexts/AuthContext'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { SkeletonTable } from '../components/ui/Skeleton'
@@ -166,6 +167,9 @@ interface StatusAction {
 
 export default function Interventions() {
   const qc = useQueryClient()
+  const { user } = useAuth()
+  // Planifier une intervention est réservé aux gérants, comme côté API et sur le mobile.
+  const canPlan = user?.role === 'Admin' || user?.role === 'StoreManager'
 
   const [statusFilter, setStatusFilter] = useState('')
   const [typeFilter,   setTypeFilter]   = useState('')
@@ -285,11 +289,11 @@ export default function Interventions() {
       <PageHeader
         title="Interventions"
         subtitle={`${interventionsPage?.totalCount ?? 0} intervention${(interventionsPage?.totalCount ?? 0) !== 1 ? 's' : ''} enregistrée${(interventionsPage?.totalCount ?? 0) !== 1 ? 's' : ''}`}
-        action={
+        action={canPlan ? (
           <button onClick={openAdd} className="fm-btn-primary">
             <Plus size={15} />Nouvelle intervention
           </button>
-        }
+        ) : undefined}
       />
 
       {/* Filters */}

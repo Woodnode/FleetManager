@@ -8,10 +8,12 @@ const apiClient = axios.create({
 
 // Prevent multiple concurrent refresh attempts
 let isRefreshing = false
-let refreshQueue: Array<() => void> = []
+let refreshQueue: Array<{ resolve: () => void; reject: () => void }> = []
 
-function processQueue() {
-  refreshQueue.forEach((resolve) => resolve())
+// Si le refresh échoue, les requêtes en attente sont rejetées : sans cela elles restaient
+// suspendues indéfiniment (écrans bloqués en chargement après la fin de session).
+function processQueue(refreshSucceeded: boolean) {
+  refreshQueue.forEach(({ resolve, reject }) => (refreshSucceeded ? resolve() : reject()))
   refreshQueue = []
 }
 
@@ -28,8 +30,8 @@ apiClient.interceptors.response.use(
 
     if (isRefreshing) {
       // Queue the retry until the ongoing refresh completes
-      return new Promise<void>((resolve) => {
-        refreshQueue.push(resolve)
+      return new Promise<void>((resolve, reject) => {
+        refreshQueue.push({ resolve, reject: () => reject(error) })
       }).then(() => apiClient(originalRequest))
     }
 
@@ -38,10 +40,11 @@ apiClient.interceptors.response.use(
 
     try {
       await apiClient.post('/auth/refresh')
-      processQueue()
+      processQueue(true)
       return apiClient(originalRequest)
     } catch {
       // Refresh failed — session is over
+      processQueue(false)
       window.dispatchEvent(new CustomEvent('auth:unauthorized'))
       return Promise.reject(error)
     } finally {

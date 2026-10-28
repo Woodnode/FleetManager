@@ -28,9 +28,14 @@ public class LogoutCommandHandler : IRequestHandler<LogoutCommand, Result>
 
     public async Task<Result> Handle(LogoutCommand request, CancellationToken cancellationToken)
     {
-        // Blacklist the current access token's JTI so it cannot be reused
-        if (_currentUser.Jti is not null)
-            _blacklist.Revoke(_currentUser.Jti, TimeSpan.FromMinutes(15));
+        // Le JTI reste en liste noire jusqu'à l'expiration réelle du jeton : une durée fixe plus courte
+        // rendait le jeton de nouveau utilisable après la déconnexion.
+        if (_currentUser.Jti is not null && _currentUser.TokenExpiresAt is { } expiresAt)
+        {
+            var remaining = expiresAt - DateTimeOffset.UtcNow;
+            if (remaining > TimeSpan.Zero)
+                _blacklist.Revoke(_currentUser.Jti, remaining);
+        }
 
         // Revoke all refresh tokens for this user
         if (_currentUser.UserId.HasValue)

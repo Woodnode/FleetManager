@@ -20,6 +20,7 @@ public class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand,
 {
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IStoreRepository _storeRepository;
+    private readonly IInterventionRepository _interventionRepository;
     private readonly IStoreAuthorizationService _authorizationService;
     private readonly ICurrentUserService _currentUser;
     private readonly IUnitOfWork _unitOfWork;
@@ -27,12 +28,14 @@ public class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand,
     public UpdateVehicleCommandHandler(
         IVehicleRepository vehicleRepository,
         IStoreRepository storeRepository,
+        IInterventionRepository interventionRepository,
         IStoreAuthorizationService authorizationService,
         ICurrentUserService currentUser,
         IUnitOfWork unitOfWork)
     {
         _vehicleRepository    = vehicleRepository;
         _storeRepository      = storeRepository;
+        _interventionRepository = interventionRepository;
         _authorizationService = authorizationService;
         _currentUser          = currentUser;
         _unitOfWork           = unitOfWork;
@@ -52,6 +55,12 @@ public class UpdateVehicleCommandHandler : IRequestHandler<UpdateVehicleCommand,
 
         if (!await _storeRepository.ExistsAsync(targetStoreId, cancellationToken))
             return Result.Failure<VehicleDto>(Error.NotFound($"Store '{targetStoreId}' not found."));
+
+        // Une intervention planifiée ou en cours reste rattachée à l'enseigne d'origine : transférer le véhicule
+        // laisserait le technicien de cette enseigne modifier un véhicule qui ne lui appartient plus.
+        if (targetStoreId != vehicle.StoreId
+            && await _interventionRepository.HasActiveForVehicleAsync(vehicle.Id, cancellationToken))
+            return Result.Failure<VehicleDto>(Error.Conflict("Impossible de transférer un véhicule avec une intervention planifiée ou en cours."));
 
         try
         {

@@ -20,11 +20,15 @@ public class GetAllStoresQueryHandler : IRequestHandler<GetAllStoresQuery, Resul
 
     public async Task<Result<IReadOnlyList<StoreDto>>> Handle(GetAllStoresQuery request, CancellationToken cancellationToken)
     {
+        // Un non-Admin sans rôle ou sans enseigne ne voit aucune enseigne (et non toutes).
+        if (!_currentUser.IsAdmin && (!_currentUser.Role.HasValue || !_currentUser.StoreId.HasValue))
+            return Result.Success<IReadOnlyList<StoreDto>>(Array.Empty<StoreDto>());
+
         var stores = await _storeRepository.GetAllAsync(cancellationToken);
 
         // Non-admin users can only see their own store
-        if (!_currentUser.IsAdmin && _currentUser.StoreId.HasValue)
-            stores = stores.Where(s => s.Id == _currentUser.StoreId.Value).ToList();
+        if (!_currentUser.IsAdmin)
+            stores = stores.Where(s => s.Id == _currentUser.StoreId!.Value).ToList();
 
         var dtos = stores.Select(StoreDto.FromEntity).ToList().AsReadOnly();
         return Result.Success<IReadOnlyList<StoreDto>>(dtos);
