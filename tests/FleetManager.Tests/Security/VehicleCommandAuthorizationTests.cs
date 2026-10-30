@@ -113,7 +113,7 @@ public class VehicleCommandAuthorizationTests
         var vehicleStoreB = BuildVehicle(StoreB);
         _vehicleRepoMock.Setup(r => r.GetByIdAsync(vehicleStoreB.Id, default)).ReturnsAsync(vehicleStoreB);
 
-        var handler = new UpdateVehicleCommandHandler(_vehicleRepoMock.Object, _storeRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
+        var handler = new UpdateVehicleCommandHandler(_vehicleRepoMock.Object, _storeRepoMock.Object, _interventionRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
         var command = new UpdateVehicleCommand(vehicleStoreB.Id, "Honda", "Civic", 2021, 0, StoreB);
 
         //Quand
@@ -135,7 +135,7 @@ public class VehicleCommandAuthorizationTests
         _storeRepoMock.Setup(r => r.ExistsAsync(StoreA, default)).ReturnsAsync(true);
         _unitOfWorkMock.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
 
-        var handler = new UpdateVehicleCommandHandler(_vehicleRepoMock.Object, _storeRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
+        var handler = new UpdateVehicleCommandHandler(_vehicleRepoMock.Object, _storeRepoMock.Object, _interventionRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
 
         // L'appelant envoie StoreB dans le corps de la requête mais son JWT indique StoreA
         var command = new UpdateVehicleCommand(vehicleStoreA.Id, "Honda", "Civic", 2021, 0, StoreB);
@@ -147,6 +147,51 @@ public class VehicleCommandAuthorizationTests
         result.IsSuccess.Should().BeTrue();
         result.Value!.StoreId.Should().Be(StoreA);
         _storeRepoMock.Verify(r => r.ExistsAsync(StoreB, default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Update_Admin_TransfertAvecInterventionActive_RetourneConflit()
+    {
+        //Étant donné — un véhicule de StoreA a une intervention planifiée, l'Admin veut le transférer vers StoreB
+        SetCurrentUser(UserRole.Admin, null);
+        var vehicleStoreA = BuildVehicle(StoreA);
+        _vehicleRepoMock.Setup(r => r.GetByIdAsync(vehicleStoreA.Id, default)).ReturnsAsync(vehicleStoreA);
+        _storeRepoMock.Setup(r => r.ExistsAsync(StoreB, default)).ReturnsAsync(true);
+        _interventionRepoMock.Setup(r => r.HasActiveForVehicleAsync(vehicleStoreA.Id, default)).ReturnsAsync(true);
+
+        var handler = new UpdateVehicleCommandHandler(_vehicleRepoMock.Object, _storeRepoMock.Object, _interventionRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
+        var command = new UpdateVehicleCommand(vehicleStoreA.Id, "Toyota", "Corolla", 2020, 0, StoreB);
+
+        //Quand
+        var result = await handler.Handle(command, default);
+
+        //Alors — refusé, le véhicule reste dans StoreA
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("CONFLICT");
+        vehicleStoreA.StoreId.Should().Be(StoreA);
+        _unitOfWorkMock.Verify(u => u.SaveChangesAsync(default), Times.Never);
+    }
+
+    [Fact]
+    public async Task Update_Admin_ModificationSansTransfert_AvecInterventionActive_Reussit()
+    {
+        //Étant donné — même enseigne : une intervention en cours ne bloque pas la modification des autres champs
+        SetCurrentUser(UserRole.Admin, null);
+        var vehicleStoreA = BuildVehicle(StoreA);
+        _vehicleRepoMock.Setup(r => r.GetByIdAsync(vehicleStoreA.Id, default)).ReturnsAsync(vehicleStoreA);
+        _storeRepoMock.Setup(r => r.ExistsAsync(StoreA, default)).ReturnsAsync(true);
+        _interventionRepoMock.Setup(r => r.HasActiveForVehicleAsync(vehicleStoreA.Id, default)).ReturnsAsync(true);
+        _unitOfWorkMock.Setup(u => u.SaveChangesAsync(default)).ReturnsAsync(1);
+
+        var handler = new UpdateVehicleCommandHandler(_vehicleRepoMock.Object, _storeRepoMock.Object, _interventionRepoMock.Object, _authService, _currentUserMock.Object, _unitOfWorkMock.Object);
+        var command = new UpdateVehicleCommand(vehicleStoreA.Id, "Toyota", "Yaris", 2020, 0, StoreA);
+
+        //Quand
+        var result = await handler.Handle(command, default);
+
+        //Alors
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Model.Should().Be("Yaris");
     }
 
     // ── DeleteVehicleCommand ──────────────────────────────────────────────────

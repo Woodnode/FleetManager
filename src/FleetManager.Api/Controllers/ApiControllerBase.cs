@@ -12,6 +12,8 @@ public abstract class ApiControllerBase : ControllerBase
     // FORBIDDEN intentionally maps to NotFound (IDOR protection: don't reveal resource existence).
     // Problem(...) fixe déjà le code HTTP : l'envelopper dans NotFound()/Conflict() sérialisait
     // l'ObjectResult lui-même ({ value, formatters, contentTypes, ... }) au lieu d'un ProblemDetails.
+    internal const string ForbiddenAsNotFoundDetail = "Ressource introuvable.";
+
     protected IActionResult MapError(Error error)
     {
         var (status, title, type) = error.Code switch
@@ -22,7 +24,11 @@ public abstract class ApiControllerBase : ControllerBase
             _              => (StatusCodes.Status400BadRequest,   "Bad request.",  "https://tools.ietf.org/html/rfc7231#section-6.5.1")
         };
 
-        var result = (ObjectResult)Problem(title: title, detail: error.Message, statusCode: status, type: type);
+        // Le message d'un FORBIDDEN (« d'une autre enseigne »…) trahirait l'existence de la ressource :
+        // il est remplacé par le même texte générique qu'une ressource absente.
+        var detail = error.Code == "FORBIDDEN" ? ForbiddenAsNotFoundDetail : error.Message;
+
+        var result = (ObjectResult)Problem(title: title, detail: detail, statusCode: status, type: type);
 
         // Les détails d'une erreur FORBIDDEN ne sont jamais exposés : elle se présente comme un 404.
         if (error.Details is not null && error.Code != "FORBIDDEN" && result.Value is ProblemDetails problem)

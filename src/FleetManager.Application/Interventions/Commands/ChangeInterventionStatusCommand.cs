@@ -56,6 +56,16 @@ public class ChangeInterventionStatusCommandHandler : IRequestHandler<ChangeInte
         if (_currentUser.Role == UserRole.Technician && intervention.TechnicianId != _currentUser.UserId)
             return Result.Failure<InterventionDto>(Error.NotFound($"Intervention '{request.InterventionId}' introuvable."));
 
+        // Le véhicule est chargé avant toute mutation : s'il a changé d'enseigne depuis la planification,
+        // l'appelant ne doit pas pouvoir écrire dessus (kilométrage, statut) via l'intervention.
+        var vehicle = request.NewStatus is InterventionStatus.Completed or InterventionStatus.Cancelled
+            ? await _vehicleRepository.GetByIdAsync(intervention.VehicleId, cancellationToken)
+            : null;
+
+        if (vehicle is not null
+            && !_authorizationService.CanAccessStore(_currentUser.Role, _currentUser.StoreId, vehicle.StoreId))
+            return Result.Failure<InterventionDto>(Error.Forbidden("Le véhicule de cette intervention appartient désormais à une autre enseigne."));
+
         try
         {
             switch (request.NewStatus)
@@ -77,17 +87,13 @@ public class ChangeInterventionStatusCommandHandler : IRequestHandler<ChangeInte
 
             // Free the vehicle in the same transaction to guarantee atomicity:
             // if the save fails, both intervention and vehicle statuses are rolled back together.
-            if (request.NewStatus is InterventionStatus.Completed or InterventionStatus.Cancelled)
+            if (vehicle is not null)
             {
-                var vehicle = await _vehicleRepository.GetByIdAsync(intervention.VehicleId, cancellationToken);
-                if (vehicle is not null)
-                {
-                    if (request.NewStatus == InterventionStatus.Completed && request.Mileage is { } mileage)
-                        vehicle.RecordMileage(mileage);
+                if (request.NewStatus == InterventionStatus.Completed && request.Mileage is { } mileage)
+                    vehicle.RecordMileage(mileage);
 
-                    vehicle.ChangeStatus(VehicleStatus.Available);
-                    _vehicleRepository.Update(vehicle);
-                }
+                vehicle.ChangeStatus(VehicleStatus.Available);
+                _vehicleRepository.Update(vehicle);
             }
 
             await _unitOfWork.SaveChangesAsync(cancellationToken);

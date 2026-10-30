@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from '../contexts/AuthContext'
 import * as authApi from '../api/auth'
 
@@ -23,7 +24,11 @@ describe('AuthContext', () => {
   // requête suivante relançait la session par le cookie de rafraîchissement.
   it('ferme la session locale même si la déconnexion côté serveur échoue', async () => {
     vi.spyOn(authApi, 'logout').mockRejectedValue(new Error('401'))
-    render(<AuthProvider><Probe /></AuthProvider>)
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <AuthProvider><Probe /></AuthProvider>
+      </QueryClientProvider>,
+    )
     await screen.findByText('connecté : Thomas')
 
     await userEvent.click(screen.getByRole('button', { name: 'Déconnexion' }))

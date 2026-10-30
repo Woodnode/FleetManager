@@ -29,7 +29,6 @@ public class ApiErrorMappingTests
 
     [Theory]
     [InlineData("NOT_FOUND",    404)]
-    [InlineData("FORBIDDEN",    404)]
     [InlineData("CONFLICT",     409)]
     [InlineData("UNAUTHORIZED", 401)]
     [InlineData("VALIDATION",   400)]
@@ -53,6 +52,19 @@ public class ApiErrorMappingTests
         var problem = (ProblemDetails)((ObjectResult)CreateController().Map(error)).Value!;
 
         problem.Extensions.Should().ContainKey("archivedVehicleId").WhoseValue.Should().Be(id);
+    }
+
+    [Fact]
+    public void MapError_Forbidden_RenvoieUnMessageGeneriqueSansLeMessageMetier()
+    {
+        // Le message métier (« d'une autre enseigne ») distinguerait un 404 masqué d'un vrai 404.
+        var forbidden = (ObjectResult)CreateController().Map(Error.Forbidden("Vous ne pouvez pas modifier un véhicule d'une autre enseigne."));
+        var notFound  = (ObjectResult)CreateController().Map(Error.NotFound("Ressource introuvable."));
+
+        forbidden.StatusCode.Should().Be(404);
+        var problem = (ProblemDetails)forbidden.Value!;
+        problem.Detail.Should().NotContain("autre enseigne");
+        problem.Detail.Should().Be(((ProblemDetails)notFound.Value!).Detail);
     }
 
     [Fact]

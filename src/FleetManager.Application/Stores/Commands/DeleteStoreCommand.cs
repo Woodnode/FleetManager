@@ -12,6 +12,7 @@ public class DeleteStoreCommandHandler : IRequestHandler<DeleteStoreCommand, Res
     private readonly IStoreRepository    _storeRepository;
     private readonly IVehicleRepository  _vehicleRepository;
     private readonly IInterventionRepository _interventionRepository;
+    private readonly IUserRepository     _userRepository;
     private readonly IUnitOfWork         _unitOfWork;
     private readonly ICurrentUserService _currentUser;
 
@@ -19,12 +20,14 @@ public class DeleteStoreCommandHandler : IRequestHandler<DeleteStoreCommand, Res
         IStoreRepository    storeRepository,
         IVehicleRepository  vehicleRepository,
         IInterventionRepository interventionRepository,
+        IUserRepository     userRepository,
         IUnitOfWork         unitOfWork,
         ICurrentUserService currentUser)
     {
         _storeRepository   = storeRepository;
         _vehicleRepository = vehicleRepository;
         _interventionRepository = interventionRepository;
+        _userRepository    = userRepository;
         _unitOfWork        = unitOfWork;
         _currentUser       = currentUser;
     }
@@ -52,6 +55,12 @@ public class DeleteStoreCommandHandler : IRequestHandler<DeleteStoreCommand, Res
         if (await _interventionRepository.ExistsForStoreIncludingArchivedAsync(request.Id, cancellationToken))
             return Result.Failure(Error.Conflict(
                 "Impossible de supprimer cette enseigne : elle possède un historique d'interventions."));
+
+        // La suppression mettrait leur StoreId à null : un gérant ou un technicien sans enseigne
+        // ne doit pas exister, il faut d'abord les rattacher ailleurs.
+        if (await _userRepository.ExistsForStoreAsync(request.Id, cancellationToken))
+            return Result.Failure(Error.Conflict(
+                "Impossible de supprimer cette enseigne : des utilisateurs y sont rattachés. Réaffectez-les d'abord."));
 
         _storeRepository.Remove(store);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

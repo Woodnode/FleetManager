@@ -15,6 +15,7 @@ public class DeleteStoreCommandTests
     private readonly Mock<IStoreRepository>   _storeRepo   = new();
     private readonly Mock<IVehicleRepository> _vehicleRepo = new();
     private readonly Mock<IInterventionRepository> _interventionRepo = new();
+    private readonly Mock<IUserRepository>    _userRepo    = new();
     private readonly Mock<IUnitOfWork>        _unitOfWork  = new();
     private readonly Mock<ICurrentUserService> _currentUser = new();
 
@@ -22,6 +23,7 @@ public class DeleteStoreCommandTests
         _storeRepo.Object,
         _vehicleRepo.Object,
         _interventionRepo.Object,
+        _userRepo.Object,
         _unitOfWork.Object,
         _currentUser.Object);
 
@@ -62,6 +64,27 @@ public class DeleteStoreCommandTests
         // Assert
         result.IsFailure.Should().BeTrue();
         result.Error!.Code.Should().Be("CONFLICT");
+    }
+
+    [Fact]
+    public async Task Handle_AsAdmin_WhenUsersAreAttached_ShouldReturnConflict()
+    {
+        // Arrange — enseigne vide de véhicules mais avec un gérant rattaché
+        _currentUser.Setup(u => u.IsAdmin).Returns(true);
+        var store = Store.Create("Test Store", "1 rue Test", "75001", "Paris");
+        _storeRepo.Setup(r => r.GetByIdAsync(StoreId, default)).ReturnsAsync(store);
+        _vehicleRepo.Setup(r => r.GetByStoreIdAsync(StoreId, default))
+            .ReturnsAsync(Array.Empty<Vehicle>());
+        _userRepo.Setup(r => r.ExistsForStoreAsync(StoreId, default)).ReturnsAsync(true);
+
+        // Act
+        var result = await CreateHandler().Handle(new DeleteStoreCommand(StoreId), default);
+
+        // Assert — refusé : la suppression laisserait des utilisateurs sans enseigne
+        result.IsFailure.Should().BeTrue();
+        result.Error!.Code.Should().Be("CONFLICT");
+        _storeRepo.Verify(r => r.Remove(It.IsAny<Store>()), Times.Never);
+        _unitOfWork.Verify(u => u.SaveChangesAsync(default), Times.Never);
     }
 
     [Fact]

@@ -11,4 +11,5 @@ public interface IUserRepository
     Task AddAsync(User user, CancellationToken cancellationToken = default);
     void Update(User user);
     Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default);
+    Task<bool> ExistsForStoreAsync(Guid storeId, CancellationToken cancellationToken = default);
 }

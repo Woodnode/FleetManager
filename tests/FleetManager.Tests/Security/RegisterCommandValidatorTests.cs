@@ -272,4 +272,38 @@ public class RegisterCommandValidatorTests
         //Alors
         result.ShouldHaveValidationErrorFor(x => x.Role);
     }
+
+    // ── Limite de BCrypt (72 octets) ──────────────────────────────────────────
+
+    [Fact]
+    public void Validate_MotDePasseDe72Octets_EstValide()
+    {
+        //Étant donné — exactement 72 octets UTF-8
+        var command = CommandeValide(password: "Fleet1" + new string('a', 66));
+
+        //Quand / Alors
+        _validator.TestValidate(command).ShouldNotHaveValidationErrorFor(x => x.Password);
+    }
+
+    [Fact]
+    public void Validate_MotDePasseDePlusDe72Octets_RetourneErreur()
+    {
+        //Étant donné — 73 octets : BCrypt tronquerait silencieusement le dernier
+        var command = CommandeValide(password: "Fleet1" + new string('a', 67));
+
+        //Quand / Alors
+        _validator.TestValidate(command)
+                  .ShouldHaveValidationErrorFor(x => x.Password)
+                  .WithErrorMessage("Le mot de passe ne doit pas dépasser 72 octets.");
+    }
+
+    [Fact]
+    public void Validate_MotDePasseAccentueDePlusDe72Octets_RetourneErreur()
+    {
+        //Étant donné — 40 caractères mais 74 octets : chaque « é » compte deux octets
+        var command = CommandeValide(password: "Fleet1" + new string('é', 33) + "a");
+
+        //Quand / Alors
+        _validator.TestValidate(command).ShouldHaveValidationErrorFor(x => x.Password);
+    }
 }

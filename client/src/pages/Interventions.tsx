@@ -8,12 +8,12 @@ import { interventionsApi } from '../api/interventions'
 import { vehiclesApi } from '../api/vehicles'
 import { storesApi } from '../api/stores'
 import { usersApi } from '../api/users'
+import { useAuth } from '../contexts/AuthContext'
 import Badge from '../components/ui/Badge'
 import Modal from '../components/ui/Modal'
 import { SkeletonTable } from '../components/ui/Skeleton'
 import { useIsMobile } from '../hooks/useMediaQuery'
 import PageHeader from '../components/ui/PageHeader'
-import { useAuth } from '../contexts/AuthContext'
 import { isManagerOrAdminRole } from '../utils/auth'
 import Pagination from '../components/ui/Pagination'
 import { createInterventionSchema, type CreateInterventionFormValues } from '../schemas/intervention'
@@ -170,6 +170,7 @@ interface StatusAction {
 export default function Interventions() {
   const qc = useQueryClient()
   const { user } = useAuth()
+  // Planifier une intervention est réservé aux gérants, comme côté API et sur le mobile.
   const canPlan = isManagerOrAdminRole(user?.role)
   // Un technicien ne fait avancer que ses propres interventions (règle de l'API).
   const canAct = (i: Intervention) => canPlan || (!!user && i.technicianId === user.userId)

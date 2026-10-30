@@ -6,7 +6,9 @@ namespace FleetManager.Api.Infrastructure;
 /// En production, le front et l'API sont servis sous la même origine (le relais transmet /api au
 /// serveur) : <c>SameSite=Lax</c> suffit et protège mieux contre le CSRF. En développement, le front
 /// (port 5173) et l'API (autre port) sont deux origines : seul <c>SameSite=None</c> laisse passer
-/// le cookie. D'où le réglage <c>Auth:CookieSameSite</c>.
+/// le cookie. D'où le réglage <c>Auth:CookieSameSite</c> : absent, il vaut <c>Lax</c>, et
+/// <c>appsettings.Development.json</c> le passe à <c>None</c> pour le poste de développement.
+/// Une configuration oubliée retombe ainsi sur la valeur la plus sûre.
 /// </summary>
 public sealed class AuthCookiePolicy
 {
@@ -24,7 +26,7 @@ public sealed class AuthCookiePolicy
     public static AuthCookiePolicy FromConfiguration(string? configuredValue) =>
         new(configuredValue?.Trim().ToLowerInvariant() switch
         {
-            null or "" => SameSiteMode.None,
+            null or "" => SameSiteMode.Lax,
             "none"     => SameSiteMode.None,
             "lax"      => SameSiteMode.Lax,
             "strict"   => SameSiteMode.Strict,
